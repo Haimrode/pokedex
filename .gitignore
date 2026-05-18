@@ -20,3 +20,14 @@ local.properties
 
 # OS-specific
 Thumbs.db
+
+# Installeurs / gros binaires : n'ont rien à faire dans un repo de code
+*.exe
+*.msi
+*.dmg
+*.iso
+*.zip
+*.7z
+
+# Documents (cours, sujets) : conservés sur EPSI, pas dans Git
+premiercours/
