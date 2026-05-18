@@ -1,5 +1,10 @@
 package com.example.pokedex.presentation.list
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -31,7 +36,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -56,6 +63,13 @@ fun PokemonListScreen(
 
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
 
+    // Extras (search + chips) suivent l'état de collapse de la TopAppBar :
+    // ils disparaissent quand l'utilisateur scrolle vers le bas
+    // et réapparaissent dès le premier scroll vers le haut.
+    val showExtras by remember {
+        derivedStateOf { scrollBehavior.state.collapsedFraction < 0.5f }
+    }
+
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
@@ -74,16 +88,24 @@ fun PokemonListScreen(
                     ),
                     scrollBehavior = scrollBehavior
                 )
-                SearchBar(
-                    query = searchQuery,
-                    onQueryChange = viewModel::onSearchQueryChange
-                )
-                if (availableTypes.isNotEmpty()) {
-                    TypeFilterRow(
-                        types = availableTypes,
-                        selectedType = selectedType,
-                        onTypeSelected = viewModel::onTypeFilterChange
-                    )
+                AnimatedVisibility(
+                    visible = showExtras,
+                    enter = expandVertically() + fadeIn(),
+                    exit = shrinkVertically() + fadeOut()
+                ) {
+                    Column {
+                        SearchBar(
+                            query = searchQuery,
+                            onQueryChange = viewModel::onSearchQueryChange
+                        )
+                        if (availableTypes.isNotEmpty()) {
+                            TypeFilterRow(
+                                types = availableTypes,
+                                selectedType = selectedType,
+                                onTypeSelected = viewModel::onTypeFilterChange
+                            )
+                        }
+                    }
                 }
             }
         }
