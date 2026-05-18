@@ -25,11 +25,19 @@ fun PokemonDetailDto.toDomainPokemon(): Pokemon = Pokemon(
     spriteUrl = pickBestSpriteUrl()
 )
 
-/** Construit un [PokemonDetail] complet depuis le DTO. */
+/** Construit un [PokemonDetail] complet depuis le DTO.
+ *
+ *  Conversions d'unités PokéAPI → unités SI :
+ *  - height : décimètres → mètres (`/10`)
+ *  - weight : hectogrammes → kilogrammes (`/10`)
+ *
+ *  Le domain expose donc des valeurs directement utilisables, ce qui
+ *  protège le ViewModel et l'UI des conventions de PokéAPI.
+ */
 fun PokemonDetailDto.toDomainDetail(): PokemonDetail = PokemonDetail(
     pokemon = toDomainPokemon(),
-    height = height,
-    weight = weight,
+    height = height / 10.0,
+    weight = weight / 10.0,
     abilities = abilities
         .sortedBy { it.slot }
         .map { it.ability.name },
