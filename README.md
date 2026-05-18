@@ -21,14 +21,13 @@ Application Android native en Kotlin consommant l'API publique [PokéAPI](https:
 
 ## Fonctionnalités
 
-- [ ] Liste des 100 premiers Pokémons (sprite, numéro Pokédex, nom, types)
-- [ ] Filtrage local par nom (insensible à la casse) et par type
-- [ ] Fiche détaillée par Pokémon (taille, poids, stats de base)
-- [ ] Ajout / retrait des favoris depuis la fiche détail
-- [x] Onglet Favoris persisté localement avec mise à jour réactive
-- [x] Navigation par Bottom Navigation Bar (2 onglets)
-
-> Le statut des fonctionnalités sera mis à jour au fur et à mesure de l'avancement.
+- [x] Liste des 100 premiers Pokémons (sprite, numéro Pokédex, nom, types) chargée en parallèle via Coroutines
+- [x] Filtrage local par nom (insensible à la casse) et par type via chips sélectionnables — aucun appel réseau supplémentaire
+- [x] Fiche détaillée par Pokémon (sprite officiel, taille, poids, 6 stats avec barres de progression)
+- [x] Ajout / retrait des favoris depuis la fiche détail (FAB avec icône qui change selon l'état)
+- [x] Onglet Favoris persisté localement avec mise à jour réactive (Room + Flow)
+- [x] Navigation par Bottom Navigation Bar (2 onglets) avec back stack indépendant par onglet
+- [x] TopAppBar collapsable au scroll (UX optimisée pour le mode paysage)
 
 ---
 
@@ -50,10 +49,19 @@ Application Android native en Kotlin consommant l'API publique [PokéAPI](https:
 ### Versions et environnement
 
 - **Android Studio** : 2025.3.4 (Narwhal)
-- **Compile SDK** : 36
+- **Android Gradle Plugin** : 8.7.3
+- **Kotlin** : 2.0.21
+- **KSP** : 2.0.21-1.0.28
+- **Hilt** : 2.52
+- **Room** : 2.6.1
+- **Retrofit** : 2.11.0
+- **Coil** : 2.7.0
+- **Navigation Compose** : 2.8.5
+- **Compose BOM** : 2024.12.01
+- **Compile SDK** : 35
 - **Min SDK** : 24 (Android 7.0 Nougat)
-- **Target SDK** : 36
-- **Java** : 11
+- **Target SDK** : 35
+- **Java target** : 11
 
 ---
 
@@ -161,17 +169,48 @@ Ce script lance uniquement `:app:installDebug` et ne déclenche aucun test.
 
 ## Captures d'écran
 
-_À ajouter en fin de projet._
+Place les captures dans un dossier `screenshots/` à la racine du projet et référence-les ici :
 
 | Liste Pokédex | Fiche détail | Favoris |
 |---|---|---|
-| _screenshot_ | _screenshot_ | _screenshot_ |
+| ![Liste](screenshots/list.png) | ![Détail](screenshots/detail.png) | ![Favoris](screenshots/favorites.png) |
 
 ---
 
 ## Difficultés rencontrées
 
-_Section à remplir au fur et à mesure du développement._
+### 1. Incompatibilité AGP 9.x ↔ Hilt 2.x
+Android Studio Narwhal (2025.3) installe par défaut **AGP 9.2.1**, qui a supprimé l'API interne `BaseExtension` utilisée par le plugin Gradle de Hilt. Conséquence : aucune version de Hilt (testées jusqu'à 2.57) ne parvient à s'appliquer, le build échouant avec `Android BaseExtension not found`.
+
+**Solution** : downgrade contrôlé de la chaîne d'outils vers une combinaison stable et largement compatible — AGP **8.7.3** + Kotlin **2.0.21** + Hilt **2.52** + KSP **2.0.21-1.0.28**. Le `compileSdk` est passé de 36 à 35 pour rester aligné avec AGP 8.x.
+
+### 2. Pollution de l'historique Git par l'installateur Android Studio
+L'installeur `android-studio-panda4-patch1-windows.exe` (1.36 GB) s'est retrouvé commit lors du `git init` initial faute d'avoir été ajouté au `.gitignore`. Le `git push` initial a refusé d'avancer (GitHub limite les fichiers à 100 MB).
+
+**Solution** : `git filter-branch --index-filter "git rm --cached --ignore-unmatch ..."` pour réécrire l'historique et purger le binaire de tous les commits, suivi de `git gc --prune=now --aggressive` pour libérer l'espace. Patterns `*.exe`, `*.msi`, `premiercours/` ajoutés au `.gitignore` pour éviter une rechute.
+
+### 3. Coordination en binôme sans Pull Request
+Le workflow choisi étant la fusion directe dans `main` sans PR, plusieurs ajustements ont dû être faits côté code à la phase d'intégration :
+- Use cases favoris (`GetFavoritesUseCase`, `ToggleFavoriteUseCase`, `IsFavoriteUseCase`) initialement absents — ajoutés pendant l'intégration pour respecter la Clean Architecture.
+- Refacto de `FavoritesViewModel` pour qu'il dépende d'un UseCase plutôt que directement du `FavoriteRepository`.
+- L'en-tête de licence Apache 2.0 supprimé par mégarde du `gradlew.bat` a été restauré.
+
+**Leçon** : même sans PR, communiquer les contrats domain en amont (interfaces, modèles) est crucial pour éviter les conflits d'intégration.
+
+### 4. PokéAPI ne renvoie pas les types dans le endpoint liste
+`GET /pokemon?limit=100` ne renvoie que `{ name, url }`. Impossible d'afficher les types et le sprite dans la liste sans un second appel par Pokémon.
+
+**Solution** : 101 appels HTTP en parallèle via `coroutineScope { ... .map { async { api.getPokemonDetail(it) } }.awaitAll() }`. Le temps total reste équivalent à la requête la plus lente (~1-2 s) au lieu de la somme cumulée (~30 s en séquentiel).
+
+### 5. TopAppBar trop encombrante en mode paysage
+En paysage, l'en-tête Material 3 + champ de recherche + chips de type prenaient ~70 % de la hauteur, ne laissant visible qu'une ligne de Pokémon.
+
+**Solution** : `TopAppBarDefaults.enterAlwaysScrollBehavior()` couplé à `Modifier.nestedScroll(...)` sur le Scaffold. La TopAppBar se replie automatiquement quand l'utilisateur scrolle vers le bas et réapparaît au scroll inverse. UX uniforme sur portrait et paysage.
+
+### 6. Subtilité `runCatching` vs `Result` propre
+`runCatching` de Kotlin capture toutes les exceptions, y compris `CancellationException` qui est le mécanisme interne d'annulation des coroutines. Capturer cette exception casse silencieusement l'annulation.
+
+**Solution** : helper `safeApiCall` dans `PokemonRepositoryImpl` qui rejette explicitement `CancellationException` avant de wrapper les autres erreurs dans `Result.failure`.
 
 ---
 

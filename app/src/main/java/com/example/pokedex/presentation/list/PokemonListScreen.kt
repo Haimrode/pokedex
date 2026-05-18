@@ -72,40 +72,26 @@ fun PokemonListScreen(
             )
         }
     ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .padding(innerPadding)
-                .fillMaxSize()
-        ) {
-            SearchBar(
-                query = searchQuery,
-                onQueryChange = viewModel::onSearchQueryChange
+        when (val state = uiState) {
+            UiState.Loading -> LoadingContent(
+                modifier = Modifier.padding(innerPadding)
             )
-
-            if (availableTypes.isNotEmpty()) {
-                TypeFilterRow(
-                    types = availableTypes,
+            is UiState.Error -> ErrorContent(
+                message = state.message,
+                onRetry = viewModel::loadPokemons,
+                modifier = Modifier.padding(innerPadding)
+            )
+            is UiState.Success -> {
+                PokemonList(
+                    pokemons = state.data,
+                    searchQuery = searchQuery,
+                    onSearchQueryChange = viewModel::onSearchQueryChange,
+                    availableTypes = availableTypes,
                     selectedType = selectedType,
-                    onTypeSelected = viewModel::onTypeFilterChange
+                    onTypeSelected = viewModel::onTypeFilterChange,
+                    onPokemonClick = onPokemonClick,
+                    contentPadding = innerPadding
                 )
-            }
-
-            when (val state = uiState) {
-                UiState.Loading -> LoadingContent()
-                is UiState.Error -> ErrorContent(
-                    message = state.message,
-                    onRetry = viewModel::loadPokemons
-                )
-                is UiState.Success -> {
-                    if (state.data.isEmpty()) {
-                        EmptyFilterContent()
-                    } else {
-                        PokemonList(
-                            pokemons = state.data,
-                            onPokemonClick = onPokemonClick
-                        )
-                    }
-                }
             }
         }
     }
@@ -165,29 +151,57 @@ private fun TypeFilterRow(
 @Composable
 private fun PokemonList(
     pokemons: List<Pokemon>,
-    onPokemonClick: (Int) -> Unit
+    searchQuery: String,
+    onSearchQueryChange: (String) -> Unit,
+    availableTypes: List<String>,
+    selectedType: String?,
+    onTypeSelected: (String?) -> Unit,
+    onPokemonClick: (Int) -> Unit,
+    contentPadding: PaddingValues
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+        contentPadding = contentPadding,
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        items(
-            items = pokemons,
-            key = { pokemon -> pokemon.id }
-        ) { pokemon ->
-            PokemonListItem(
-                pokemon = pokemon,
-                onClick = { onPokemonClick(pokemon.id) }
+        item(key = "search-bar") {
+            SearchBar(
+                query = searchQuery,
+                onQueryChange = onSearchQueryChange
             )
+        }
+        if (availableTypes.isNotEmpty()) {
+            item(key = "type-filter") {
+                TypeFilterRow(
+                    types = availableTypes,
+                    selectedType = selectedType,
+                    onTypeSelected = onTypeSelected
+                )
+            }
+        }
+        if (pokemons.isEmpty()) {
+            item(key = "empty-state") {
+                EmptyFilterContent()
+            }
+        } else {
+            items(
+                items = pokemons,
+                key = { pokemon -> pokemon.id }
+            ) { pokemon ->
+                PokemonListItem(
+                    pokemon = pokemon,
+                    onClick = { onPokemonClick(pokemon.id) },
+                    modifier = Modifier.padding(horizontal = 16.dp)
+                )
+            }
         }
     }
 }
 
 @Composable
-private fun LoadingContent() {
+private fun LoadingContent(modifier: Modifier = Modifier) {
     Box(
-        modifier = Modifier.fillMaxSize(),
+        modifier = modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
         CircularProgressIndicator()
@@ -197,10 +211,11 @@ private fun LoadingContent() {
 @Composable
 private fun ErrorContent(
     message: String,
-    onRetry: () -> Unit
+    onRetry: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxSize()
             .padding(32.dp),
         verticalArrangement = Arrangement.Center,
@@ -236,7 +251,7 @@ private fun ErrorContent(
 private fun EmptyFilterContent() {
     Box(
         modifier = Modifier
-            .fillMaxSize()
+            .fillMaxWidth()
             .padding(32.dp),
         contentAlignment = Alignment.Center
     ) {
