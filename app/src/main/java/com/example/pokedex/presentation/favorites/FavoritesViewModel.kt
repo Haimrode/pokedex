@@ -3,20 +3,19 @@ package com.example.pokedex.presentation.favorites
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.pokedex.domain.model.Pokemon
-import com.example.pokedex.domain.repository.FavoriteRepository
+import com.example.pokedex.domain.usecase.GetFavoritesUseCase
 import com.example.pokedex.presentation.common.UiState
 import dagger.hilt.android.lifecycle.HiltViewModel
-import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 @HiltViewModel
 class FavoritesViewModel @Inject constructor(
-    private val favoriteRepository: FavoriteRepository
+    private val getFavorites: GetFavoritesUseCase
 ) : ViewModel() {
 
     private val _favoritesState = MutableStateFlow<UiState<List<Pokemon>>>(UiState.Loading)
@@ -28,7 +27,7 @@ class FavoritesViewModel @Inject constructor(
 
     private fun observeFavorites() {
         viewModelScope.launch {
-            favoriteRepository.getFavorites()
+            getFavorites()
                 .catch { throwable ->
                     _favoritesState.value = UiState.Error(
                         throwable.message ?: "Impossible de charger les favoris"
@@ -40,4 +39,3 @@ class FavoritesViewModel @Inject constructor(
         }
     }
 }
-
