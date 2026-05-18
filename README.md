@@ -169,11 +169,29 @@ Ce script lance uniquement `:app:installDebug` et ne déclenche aucun test.
 
 ## Captures d'écran
 
-Place les captures dans un dossier `screenshots/` à la racine du projet et référence-les ici :
+### Écran principal — onglet Pokédex
 
-| Liste Pokédex | Fiche détail | Favoris |
-|---|---|---|
-| ![Liste](screenshots/list.png) | ![Détail](screenshots/detail.png) | ![Favoris](screenshots/favorites.png) |
+| En haut de la liste | Après scroll (TopAppBar + recherche collapsées) |
+|---|---|
+| ![Pokédex - en haut](screenshots/Pokedex-accueil-avec-barre-de-recherche.jpg) | ![Pokédex - scrollé](screenshots/Pokedex-accueil-sans-barre-de-recherche.jpg) |
+
+L'en-tête (barre de titre + champ de recherche + chips de filtre) **se replie automatiquement** dès que l'utilisateur scrolle vers le bas, et **réapparaît au moindre scroll vers le haut**. Le tout est piloté par `TopAppBarDefaults.enterAlwaysScrollBehavior()` couplé à `AnimatedVisibility` synchronisé sur la même `collapsedFraction`.
+
+### Mode paysage — bénéfice maximal du collapse
+
+| En haut | Après scroll |
+|---|---|
+| ![Paysage - en haut](screenshots/Pokedex-accueil-avec-barre-de-recherche-incliné.jpg) | ![Paysage - scrollé](screenshots/Pokedex-accueil-sans-barre-de-recherche-incliné.jpg) |
+
+En paysage, l'en-tête prenait initialement ~70 % de la hauteur. Après collapse, la liste occupe presque tout l'écran.
+
+### Fiche détail + Favoris
+
+| Fiche détail (avec bouton ❤️ favori) | Onglet Favoris |
+|---|---|
+| ![Détail](screenshots/Detail-pokemon.jpg) | ![Favoris](screenshots/favoris.jpg) |
+
+La fiche détail montre le sprite officiel, les types, la taille (en mètres) et le poids (en kg) convertis depuis les unités brutes de PokéAPI, et les 6 stats de base avec barres de progression. Le **FAB** en bas à droite bascule l'état favori — l'icône passe de contour à plein, et le Pokémon apparaît instantanément dans l'onglet Favoris via le `Flow` Room réactif.
 
 ---
 
