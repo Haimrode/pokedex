@@ -141,6 +141,22 @@ com.example.pokedex/
 
 L'APK sera généré dans `app/build/outputs/apk/debug/app-debug.apk`.
 
+Sous Windows, tu peux aussi utiliser le script racine :
+
+```bat
+build-apk.bat
+```
+
+Ce script lance uniquement `:app:assembleDebug` et ne déclenche aucun test.
+
+Pour installer directement l'application sur un émulateur ou un appareil connecté :
+
+```bat
+install-apk.bat
+```
+
+Ce script lance uniquement `:app:installDebug` et ne déclenche aucun test.
+
 ---
 
 ## Captures d'écran
