@@ -25,8 +25,8 @@ Application Android native en Kotlin consommant l'API publique [PokéAPI](https:
 - [ ] Filtrage local par nom (insensible à la casse) et par type
 - [ ] Fiche détaillée par Pokémon (taille, poids, stats de base)
 - [ ] Ajout / retrait des favoris depuis la fiche détail
-- [ ] Onglet Favoris persisté localement avec mise à jour réactive
-- [ ] Navigation par Bottom Navigation Bar (2 onglets)
+- [x] Onglet Favoris persisté localement avec mise à jour réactive
+- [x] Navigation par Bottom Navigation Bar (2 onglets)
 
 > Le statut des fonctionnalités sera mis à jour au fur et à mesure de l'avancement.
 
