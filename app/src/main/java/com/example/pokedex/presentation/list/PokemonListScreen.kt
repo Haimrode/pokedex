@@ -1,5 +1,6 @@
 package com.example.pokedex.presentation.list
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -58,18 +59,33 @@ fun PokemonListScreen(
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = "Pokédex",
-                        fontWeight = FontWeight.Bold
+            Column(
+                modifier = Modifier.background(MaterialTheme.colorScheme.surface)
+            ) {
+                TopAppBar(
+                    title = {
+                        Text(
+                            text = "Pokédex",
+                            fontWeight = FontWeight.Bold
+                        )
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer
+                    ),
+                    scrollBehavior = scrollBehavior
+                )
+                SearchBar(
+                    query = searchQuery,
+                    onQueryChange = viewModel::onSearchQueryChange
+                )
+                if (availableTypes.isNotEmpty()) {
+                    TypeFilterRow(
+                        types = availableTypes,
+                        selectedType = selectedType,
+                        onTypeSelected = viewModel::onTypeFilterChange
                     )
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer
-                ),
-                scrollBehavior = scrollBehavior
-            )
+                }
+            }
         }
     ) { innerPadding ->
         when (val state = uiState) {
@@ -82,16 +98,22 @@ fun PokemonListScreen(
                 modifier = Modifier.padding(innerPadding)
             )
             is UiState.Success -> {
-                PokemonList(
-                    pokemons = state.data,
-                    searchQuery = searchQuery,
-                    onSearchQueryChange = viewModel::onSearchQueryChange,
-                    availableTypes = availableTypes,
-                    selectedType = selectedType,
-                    onTypeSelected = viewModel::onTypeFilterChange,
-                    onPokemonClick = onPokemonClick,
-                    contentPadding = innerPadding
-                )
+                if (state.data.isEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .padding(innerPadding)
+                            .fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        EmptyFilterContent()
+                    }
+                } else {
+                    PokemonList(
+                        pokemons = state.data,
+                        onPokemonClick = onPokemonClick,
+                        contentPadding = innerPadding
+                    )
+                }
             }
         }
     }
@@ -151,11 +173,6 @@ private fun TypeFilterRow(
 @Composable
 private fun PokemonList(
     pokemons: List<Pokemon>,
-    searchQuery: String,
-    onSearchQueryChange: (String) -> Unit,
-    availableTypes: List<String>,
-    selectedType: String?,
-    onTypeSelected: (String?) -> Unit,
     onPokemonClick: (Int) -> Unit,
     contentPadding: PaddingValues
 ) {
@@ -164,36 +181,15 @@ private fun PokemonList(
         contentPadding = contentPadding,
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        item(key = "search-bar") {
-            SearchBar(
-                query = searchQuery,
-                onQueryChange = onSearchQueryChange
+        items(
+            items = pokemons,
+            key = { pokemon -> pokemon.id }
+        ) { pokemon ->
+            PokemonListItem(
+                pokemon = pokemon,
+                onClick = { onPokemonClick(pokemon.id) },
+                modifier = Modifier.padding(horizontal = 16.dp)
             )
-        }
-        if (availableTypes.isNotEmpty()) {
-            item(key = "type-filter") {
-                TypeFilterRow(
-                    types = availableTypes,
-                    selectedType = selectedType,
-                    onTypeSelected = onTypeSelected
-                )
-            }
-        }
-        if (pokemons.isEmpty()) {
-            item(key = "empty-state") {
-                EmptyFilterContent()
-            }
-        } else {
-            items(
-                items = pokemons,
-                key = { pokemon -> pokemon.id }
-            ) { pokemon ->
-                PokemonListItem(
-                    pokemon = pokemon,
-                    onClick = { onPokemonClick(pokemon.id) },
-                    modifier = Modifier.padding(horizontal = 16.dp)
-                )
-            }
         }
     }
 }
