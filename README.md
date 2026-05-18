@@ -159,9 +159,20 @@ _Section à remplir au fur et à mesure du développement._
 
 ---
 
-## Auteur
+## Auteurs
 
-- **Alexandre S.** — Étudiant EPSI
+Projet réalisé en binôme :
+- **Alexandre S.**
+- **Pierre**
+
+## Répartition des tâches
+
+| Membre | Responsabilités |
+|---|---|
+| **Alexandre** | Couche réseau (Retrofit + PokéAPI), `data/remote`, `PokemonRepositoryImpl`, `NetworkModule` (Hilt), use cases liste/détail, écran liste Pokédex + filtres, écran détail Pokémon |
+| **Pierre** | Base de données locale (Room), `data/local`, `FavoriteRepositoryImpl`, `DatabaseModule` + `RepositoryModule` (Hilt), use cases favoris, écran Favoris, navigation (Bottom Navigation Bar + NavGraphs), intégration `MainActivity` |
+
+Les modèles métier (`domain/model/`), les interfaces de repository (`domain/repository/`) et la sealed class `UiState` ont été définis ensemble en amont pour garantir des contrats stables entre les deux côtés.
 
 ---
 
