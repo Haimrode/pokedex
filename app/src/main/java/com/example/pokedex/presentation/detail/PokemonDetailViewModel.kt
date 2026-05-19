@@ -5,12 +5,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.pokedex.data.local.ShinyEncounterStore
 import com.example.pokedex.domain.model.EvolutionMember
-import com.example.pokedex.domain.model.Pokemon
 import com.example.pokedex.domain.model.PokemonDetail
 import com.example.pokedex.domain.usecase.GetEvolutionFamilyUseCase
 import com.example.pokedex.domain.usecase.GetPokemonDetailUseCase
 import com.example.pokedex.domain.usecase.IsFavoriteUseCase
-import com.example.pokedex.domain.usecase.ObserveFavoriteUseCase
 import com.example.pokedex.domain.usecase.ToggleFavoriteUseCase
 import com.example.pokedex.presentation.common.UiState
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -29,7 +27,6 @@ class PokemonDetailViewModel @Inject constructor(
     private val toggleFavorite: ToggleFavoriteUseCase,
     private val getEvolutionFamily: GetEvolutionFamilyUseCase,
     isFavoriteUseCase: IsFavoriteUseCase,
-    observeFavoriteUseCase: ObserveFavoriteUseCase,
     private val shinyEncounterStore: ShinyEncounterStore,
     private val levelStore: com.example.pokedex.data.local.PokemonLevelStore,
     private val moveStore: com.example.pokedex.data.local.PokemonMoveStore
@@ -48,13 +45,6 @@ class PokemonDetailViewModel @Inject constructor(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
             initialValue = false
-        )
-
-    private val favoritePokemonState: StateFlow<Pokemon?> =
-        observeFavoriteUseCase(pokemonId).stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5_000),
-            initialValue = null
         )
 
     init {
@@ -152,8 +142,11 @@ class PokemonDetailViewModel @Inject constructor(
 
     fun onToggleFavorite() {
         val pokemon = (_uiState.value as? UiState.Success)?.data?.pokemon ?: return
+        // favoriteState (Boolean) est collecté par l'écran → sa valeur est fiable.
+        // favoritePokemonState (Pokemon?) ne l'était pas → on l'a retiré du VM.
+        val isCurrentlyFavorite = favoriteState.value
         viewModelScope.launch {
-            toggleFavorite(pokemon, favoritePokemonState.value)
+            toggleFavorite(pokemon, isCurrentlyFavorite)
         }
     }
 
