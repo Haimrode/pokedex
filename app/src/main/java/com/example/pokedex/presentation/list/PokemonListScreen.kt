@@ -1,10 +1,5 @@
 package com.example.pokedex.presentation.list
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -14,6 +9,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -24,21 +20,29 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -64,55 +68,50 @@ fun PokemonListScreen(
     val selectedGeneration by viewModel.selectedGeneration.collectAsStateWithLifecycle()
 
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
+    var showFilterSheet by remember { mutableStateOf(false) }
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
-    // Extras (search + chips) suivent l'état de collapse de la TopAppBar :
-    // ils disparaissent quand l'utilisateur scrolle vers le bas
-    // et réapparaissent dès le premier scroll vers le haut.
-    val showExtras by remember {
-        derivedStateOf { scrollBehavior.state.collapsedFraction < 0.5f }
-    }
+    // Un filtre est "actif" si l'user a quitté l'état par défaut (Gen 1 + tous types).
+    val hasActiveFilters = selectedGeneration != Generation.GEN_1 || selectedType != null
 
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
-            Column(
-                modifier = Modifier.background(MaterialTheme.colorScheme.surface)
-            ) {
+            // Column avec deux niveaux :
+            //  - TopAppBar (collapse avec scrollBehavior)
+            //  - SearchBar (toujours visible, sticky)
+            // Les filtres Gen + Type sont sortis de l'écran et accessibles
+            // via le bouton "Filtres" dans la TopAppBar — gain massif en paysage.
+            Column(modifier = Modifier.background(MaterialTheme.colorScheme.surface)) {
                 TopAppBar(
                     title = {
-                        Text(
-                            text = "Pokédex",
-                            fontWeight = FontWeight.Bold
-                        )
+                        Text(text = "Pokédex", fontWeight = FontWeight.Bold)
+                    },
+                    actions = {
+                        IconButton(onClick = { showFilterSheet = true }) {
+                            BadgedBox(
+                                badge = {
+                                    if (hasActiveFilters) {
+                                        Badge()
+                                    }
+                                }
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Tune,
+                                    contentDescription = "Filtres (génération et type)"
+                                )
+                            }
+                        }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
                         containerColor = MaterialTheme.colorScheme.primaryContainer
                     ),
                     scrollBehavior = scrollBehavior
                 )
-                AnimatedVisibility(
-                    visible = showExtras,
-                    enter = expandVertically() + fadeIn(),
-                    exit = shrinkVertically() + fadeOut()
-                ) {
-                    Column {
-                        GenerationFilterRow(
-                            selectedGeneration = selectedGeneration,
-                            onGenerationSelected = viewModel::onGenerationChange
-                        )
-                        SearchBar(
-                            query = searchQuery,
-                            onQueryChange = viewModel::onSearchQueryChange
-                        )
-                        if (availableTypes.isNotEmpty()) {
-                            TypeFilterRow(
-                                types = availableTypes,
-                                selectedType = selectedType,
-                                onTypeSelected = viewModel::onTypeFilterChange
-                            )
-                        }
-                    }
-                }
+                SearchBar(
+                    query = searchQuery,
+                    onQueryChange = viewModel::onSearchQueryChange
+                )
             }
         }
     ) { innerPadding ->
@@ -145,6 +144,81 @@ fun PokemonListScreen(
             }
         }
     }
+
+    if (showFilterSheet) {
+        FilterBottomSheet(
+            sheetState = sheetState,
+            onDismiss = { showFilterSheet = false },
+            selectedGeneration = selectedGeneration,
+            onGenerationSelected = viewModel::onGenerationChange,
+            availableTypes = availableTypes,
+            selectedType = selectedType,
+            onTypeSelected = viewModel::onTypeFilterChange,
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun FilterBottomSheet(
+    sheetState: androidx.compose.material3.SheetState,
+    onDismiss: () -> Unit,
+    selectedGeneration: Generation,
+    onGenerationSelected: (Generation) -> Unit,
+    availableTypes: List<String>,
+    selectedType: String?,
+    onTypeSelected: (String?) -> Unit,
+) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
+                .navigationBarsPadding(),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text(
+                text = "Filtres",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(bottom = 8.dp),
+            )
+
+            Text(
+                text = "Génération",
+                style = MaterialTheme.typography.titleMedium,
+            )
+            GenerationFilterRow(
+                selectedGeneration = selectedGeneration,
+                onGenerationSelected = onGenerationSelected,
+            )
+
+            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+            Text(
+                text = "Type",
+                style = MaterialTheme.typography.titleMedium,
+            )
+            if (availableTypes.isEmpty()) {
+                Text(
+                    text = "Chargement des types…",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            } else {
+                TypeFilterRow(
+                    types = availableTypes,
+                    selectedType = selectedType,
+                    onTypeSelected = onTypeSelected,
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+        }
+    }
 }
 
 @Composable
@@ -172,11 +246,9 @@ private fun GenerationFilterRow(
     onGenerationSelected: (Generation) -> Unit
 ) {
     LazyRow(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 4.dp),
+        modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
-        contentPadding = PaddingValues(horizontal = 4.dp)
+        contentPadding = PaddingValues(vertical = 4.dp)
     ) {
         items(items = Generation.entries, key = { it.number }) { generation ->
             FilterChip(
@@ -195,11 +267,9 @@ private fun TypeFilterRow(
     onTypeSelected: (String?) -> Unit
 ) {
     LazyRow(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 4.dp),
+        modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
-        contentPadding = PaddingValues(horizontal = 4.dp)
+        contentPadding = PaddingValues(vertical = 4.dp)
     ) {
         item(key = "all") {
             FilterChip(
