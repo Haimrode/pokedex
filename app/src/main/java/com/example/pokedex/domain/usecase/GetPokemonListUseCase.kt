@@ -1,5 +1,6 @@
 package com.example.pokedex.domain.usecase
 
+import com.example.pokedex.domain.model.Generation
 import com.example.pokedex.domain.model.Pokemon
 import com.example.pokedex.domain.repository.PokemonRepository
 import javax.inject.Inject
@@ -22,6 +23,8 @@ import javax.inject.Inject
 class GetPokemonListUseCase @Inject constructor(
     private val repository: PokemonRepository
 ) {
-    suspend operator fun invoke(limit: Int = 100): Result<List<Pokemon>> =
-        repository.getPokemonList(limit)
+    suspend operator fun invoke(
+        generation: Generation = Generation.GEN_1
+    ): Result<List<Pokemon>> =
+        repository.getPokemonList(generation)
 }

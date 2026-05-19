@@ -1,5 +1,6 @@
 package com.example.pokedex.domain.repository
 
+import com.example.pokedex.domain.model.Generation
 import com.example.pokedex.domain.model.Pokemon
 import com.example.pokedex.domain.model.PokemonDetail
 
@@ -18,8 +19,11 @@ import com.example.pokedex.domain.model.PokemonDetail
  */
 interface PokemonRepository {
 
-    /** Récupère les [limit] premiers Pokémons (par défaut 100). */
-    suspend fun getPokemonList(limit: Int = 100): Result<List<Pokemon>>
+    /**
+     * Récupère tous les Pokémons d'une [generation] donnée.
+     * Le repository traduit la génération en (offset, limit) PokéAPI.
+     */
+    suspend fun getPokemonList(generation: Generation = Generation.GEN_1): Result<List<Pokemon>>
 
     /** Récupère la fiche détaillée d'un Pokémon par son [id] Pokédex. */
     suspend fun getPokemonDetail(id: Int): Result<PokemonDetail>
