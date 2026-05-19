@@ -2,6 +2,7 @@ package com.example.pokedex.presentation.list
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.pokedex.domain.model.Generation
 import com.example.pokedex.domain.model.Pokemon
 import com.example.pokedex.domain.usecase.GetPokemonListUseCase
 import com.example.pokedex.presentation.common.UiState
@@ -29,6 +30,9 @@ class PokemonListViewModel @Inject constructor(
 
     private val _selectedType = MutableStateFlow<String?>(null)
     val selectedType: StateFlow<String?> = _selectedType.asStateFlow()
+
+    private val _selectedGeneration = MutableStateFlow(Generation.GEN_1)
+    val selectedGeneration: StateFlow<Generation> = _selectedGeneration.asStateFlow()
 
     val uiState: StateFlow<UiState<List<Pokemon>>> = combine(
         _loadStatus,
@@ -62,7 +66,7 @@ class PokemonListViewModel @Inject constructor(
     fun loadPokemons() {
         viewModelScope.launch {
             _loadStatus.value = UiState.Loading
-            getPokemonList().fold(
+            getPokemonList(_selectedGeneration.value).fold(
                 onSuccess = { list ->
                     _allPokemons.value = list
                     _loadStatus.value = UiState.Success(Unit)
@@ -82,6 +86,18 @@ class PokemonListViewModel @Inject constructor(
 
     fun onTypeFilterChange(type: String?) {
         _selectedType.value = type
+    }
+
+    /**
+     * Change la génération affichée et déclenche un re-fetch.
+     * On reset également le filtre par type (les types disponibles changent
+     * d'une gen à l'autre, garder l'ancien filtre n'aurait pas de sens).
+     */
+    fun onGenerationChange(generation: Generation) {
+        if (_selectedGeneration.value == generation) return
+        _selectedGeneration.value = generation
+        _selectedType.value = null
+        loadPokemons()
     }
 
     private fun applyFilters(

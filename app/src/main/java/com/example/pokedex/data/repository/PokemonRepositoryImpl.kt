@@ -3,6 +3,7 @@ package com.example.pokedex.data.repository
 import com.example.pokedex.data.remote.PokemonApi
 import com.example.pokedex.data.remote.mapper.toDomainDetail
 import com.example.pokedex.data.remote.mapper.toDomainPokemon
+import com.example.pokedex.domain.model.Generation
 import com.example.pokedex.domain.model.Pokemon
 import com.example.pokedex.domain.model.PokemonDetail
 import com.example.pokedex.domain.repository.PokemonRepository
@@ -31,8 +32,11 @@ class PokemonRepositoryImpl @Inject constructor(
     private val api: PokemonApi
 ) : PokemonRepository {
 
-    override suspend fun getPokemonList(limit: Int): Result<List<Pokemon>> = safeApiCall {
-        val listResponse = api.getPokemonList(limit = limit)
+    override suspend fun getPokemonList(generation: Generation): Result<List<Pokemon>> = safeApiCall {
+        val listResponse = api.getPokemonList(
+            limit = generation.count,
+            offset = generation.offset,
+        )
         coroutineScope {
             listResponse.results
                 .map { entry ->

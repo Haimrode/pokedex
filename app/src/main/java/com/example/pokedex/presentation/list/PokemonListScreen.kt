@@ -46,6 +46,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.pokedex.domain.model.Generation
 import com.example.pokedex.domain.model.Pokemon
 import com.example.pokedex.presentation.common.UiState
 import com.example.pokedex.presentation.list.components.PokemonListItem
@@ -60,6 +61,7 @@ fun PokemonListScreen(
     val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
     val selectedType by viewModel.selectedType.collectAsStateWithLifecycle()
     val availableTypes by viewModel.availableTypes.collectAsStateWithLifecycle()
+    val selectedGeneration by viewModel.selectedGeneration.collectAsStateWithLifecycle()
 
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
 
@@ -94,6 +96,10 @@ fun PokemonListScreen(
                     exit = shrinkVertically() + fadeOut()
                 ) {
                     Column {
+                        GenerationFilterRow(
+                            selectedGeneration = selectedGeneration,
+                            onGenerationSelected = viewModel::onGenerationChange
+                        )
                         SearchBar(
                             query = searchQuery,
                             onQueryChange = viewModel::onSearchQueryChange
@@ -158,6 +164,28 @@ private fun SearchBar(
         },
         singleLine = true
     )
+}
+
+@Composable
+private fun GenerationFilterRow(
+    selectedGeneration: Generation,
+    onGenerationSelected: (Generation) -> Unit
+) {
+    LazyRow(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        contentPadding = PaddingValues(horizontal = 4.dp)
+    ) {
+        items(items = Generation.entries, key = { it.number }) { generation ->
+            FilterChip(
+                selected = selectedGeneration == generation,
+                onClick = { onGenerationSelected(generation) },
+                label = { Text(generation.displayName) }
+            )
+        }
+    }
 }
 
 @Composable
