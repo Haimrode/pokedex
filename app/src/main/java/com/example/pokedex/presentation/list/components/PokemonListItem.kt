@@ -21,6 +21,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.example.pokedex.domain.model.Pokemon
+import com.example.pokedex.presentation.common.typeNameFr
 import com.example.pokedex.ui.theme.PokedexTheme
 
 @Composable
@@ -60,9 +61,7 @@ fun PokemonListItem(
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = pokemon.types.joinToString(" · ") { type ->
-                        type.replaceFirstChar { it.uppercase() }
-                    },
+                    text = pokemon.types.joinToString(" · ") { type -> typeNameFr(type) },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.primary
                 )

@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.text.Normalizer
 import javax.inject.Inject
 
 /**
@@ -72,13 +73,24 @@ class GameViewModel @Inject constructor(
 
     fun onInputChange(input: String) {
         _uiState.update { state ->
-            val filtered = if (input.isBlank()) emptyList()
+            val query = input.trim().stripAccents().lowercase()
+            val filtered = if (query.isBlank()) emptyList()
             else state.allNames
-                .filter { it.name.contains(input.trim().lowercase()) }
+                .filter { it.name.stripAccents().lowercase().contains(query) }
                 .take(MAX_SUGGESTIONS)
             state.copy(currentInput = input, suggestions = filtered)
         }
     }
+
+    /**
+     * Retire les accents : "Électrik" → "Electrik", "Pokémon" → "Pokemon".
+     * Permet à l'utilisateur de taper "elec" et de matcher "Électrik".
+     * On normalise en NFD (forme décomposée) puis on retire les marques
+     * de combinaison (les accents flottants).
+     */
+    private fun String.stripAccents(): String =
+        Normalizer.normalize(this, Normalizer.Form.NFD)
+            .replace(ACCENT_MARKS, "")
 
     fun onGuessSelected(ref: PokemonRef) {
         val state = _uiState.value
@@ -171,5 +183,6 @@ class GameViewModel @Inject constructor(
 
     private companion object {
         const val MAX_SUGGESTIONS = 8
+        private val ACCENT_MARKS = "\\p{InCombiningDiacriticalMarks}+".toRegex()
     }
 }

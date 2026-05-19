@@ -21,6 +21,7 @@ import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.AssistChip
+import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -36,6 +37,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
@@ -45,6 +48,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.example.pokedex.domain.model.PokemonDetail
 import com.example.pokedex.presentation.common.UiState
+import com.example.pokedex.presentation.common.typeColor
+import com.example.pokedex.presentation.common.typeNameFr
 import com.example.pokedex.presentation.detail.components.StatBar
 
 @Composable
@@ -213,16 +218,21 @@ private fun DetailContent(
             contentScale = ContentScale.Fit
         )
 
-        // Types (chips)
+        // Types (chips) — couleurs iconiques + libellés FR (Feu, Eau, Plante…).
         Row(
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             detail.pokemon.types.forEach { type ->
+                val color = typeColor(type)
+                val labelOnColor = if (color.luminance() > 0.5f) Color.Black else Color.White
                 AssistChip(
                     onClick = {},
-                    label = {
-                        Text(type.replaceFirstChar { it.uppercase() })
-                    }
+                    label = { Text(typeNameFr(type)) },
+                    colors = AssistChipDefaults.assistChipColors(
+                        containerColor = color,
+                        labelColor = labelOnColor,
+                    ),
+                    border = null,
                 )
             }
         }

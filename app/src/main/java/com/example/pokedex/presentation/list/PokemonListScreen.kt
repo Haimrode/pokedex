@@ -27,6 +27,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -45,6 +46,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -53,6 +56,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.pokedex.domain.model.Generation
 import com.example.pokedex.domain.model.Pokemon
 import com.example.pokedex.presentation.common.UiState
+import com.example.pokedex.presentation.common.typeColor
+import com.example.pokedex.presentation.common.typeNameFr
 import com.example.pokedex.presentation.list.components.PokemonListItem
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -279,12 +284,20 @@ private fun TypeFilterRow(
             )
         }
         items(items = types, key = { it }) { type ->
+            val color = typeColor(type)
+            // Texte blanc ou noir selon la luminosité du fond — lisible sur
+            // jaune (Électrik) comme sur violet sombre (Spectre).
+            val labelOnColor = if (color.luminance() > 0.5f) Color.Black else Color.White
             FilterChip(
                 selected = selectedType == type,
                 onClick = { onTypeSelected(type) },
-                label = {
-                    Text(type.replaceFirstChar { it.uppercase() })
-                }
+                label = { Text(typeNameFr(type)) },
+                colors = FilterChipDefaults.filterChipColors(
+                    containerColor = color.copy(alpha = 0.30f),
+                    selectedContainerColor = color,
+                    labelColor = MaterialTheme.colorScheme.onSurface,
+                    selectedLabelColor = labelOnColor,
+                ),
             )
         }
     }

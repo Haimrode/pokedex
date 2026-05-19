@@ -28,6 +28,8 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.example.pokedex.domain.model.HintType
 import com.example.pokedex.domain.model.PokemonGameData
+import com.example.pokedex.presentation.common.colorNameFr
+import com.example.pokedex.presentation.common.typeNameFr
 
 /**
  * Panneau d'indices : bouton "Demander un indice" + chips des indices déjà
@@ -100,11 +102,11 @@ private fun HintChip(hint: HintType, mystery: PokemonGameData) {
         )
         HintType.COLOR -> AssistChip(
             onClick = {},
-            label = { Text("Couleur : ${mystery.color.replaceFirstChar { it.uppercase() }}") },
+            label = { Text("Couleur : ${colorNameFr(mystery.color)}") },
         )
         HintType.TYPE_1 -> AssistChip(
             onClick = {},
-            label = { Text("Type 1 : ${mystery.type1.replaceFirstChar { it.uppercase() }}") },
+            label = { Text("Type 1 : ${typeNameFr(mystery.type1)}") },
         )
         HintType.FIRST_LETTER -> AssistChip(
             onClick = {},

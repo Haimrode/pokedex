@@ -34,6 +34,9 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.pokedex.domain.model.CellComparison
 import com.example.pokedex.domain.model.GuessResult
+import com.example.pokedex.presentation.common.colorNameFr
+import com.example.pokedex.presentation.common.shapeNameFr
+import com.example.pokedex.presentation.common.typeNameFr
 
 private val SPRITE_CELL_WIDTH = 80.dp
 private val CELL_WIDTH = 72.dp
@@ -120,13 +123,13 @@ private fun GuessRow(result: GuessResult, hScroll: ScrollState) {
         SpriteCell(spriteUrl = result.guess.spriteUrl, name = result.guess.name)
         ValueCell("#${result.guess.id}", result.number)
         ValueCell("Gen ${result.guess.generation.number}", result.generation)
-        ValueCell(result.guess.type1.replaceFirstChar { it.uppercase() }, result.type1)
+        ValueCell(typeNameFr(result.guess.type1), result.type1)
         ValueCell(
-            text = result.guess.type2?.replaceFirstChar { it.uppercase() } ?: "Aucun",
+            text = result.guess.type2?.let(::typeNameFr) ?: "Aucun",
             comparison = result.type2,
         )
-        ValueCell(result.guess.color.replaceFirstChar { it.uppercase() }, result.color)
-        ValueCell(result.guess.shape.replaceFirstChar { it.uppercase() }, result.shape)
+        ValueCell(colorNameFr(result.guess.color), result.color)
+        ValueCell(shapeNameFr(result.guess.shape), result.shape)
         ValueCell("Stade ${result.guess.evolutionStage}", result.evolutionStage)
         ValueCell("%.1f m".format(result.guess.height), result.height)
         ValueCell("%.1f kg".format(result.guess.weight), result.weight)
@@ -146,7 +149,7 @@ private fun SpriteCell(spriteUrl: String, name: String) {
             modifier = Modifier.size(40.dp),
         )
         Text(
-            text = name.replaceFirstChar { it.uppercase() },
+            text = name,
             fontSize = 10.sp,
             maxLines = 1,
         )
