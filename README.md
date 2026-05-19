@@ -28,6 +28,8 @@ Application Android native en Kotlin consommant l'API publique [PokéAPI](https:
 - [x] Filtres **Génération + Type** dans une **ModalBottomSheet** (gain d'espace en paysage)
 - [x] Chips de type aux **couleurs iconiques** Bulbapedia (Feu rouge, Eau bleu, Plante vert…)
 - [x] Fiche détaillée : sprite officiel, types colorés FR, taille, poids, 6 stats avec barres
+- [x] **Famille évolutive** affichée sur chaque fiche (sprites en cercle, Pokémon courant mis en évidence)
+- [x] **Système shiny** avec déblocage aléatoire (1/10 par visite) + **toggle on/off** une fois débloqué
 - [x] TopAppBar collapsable au scroll
 
 ### Pokémondle (3ème onglet — mini-jeu façon Wordle)
@@ -220,13 +222,21 @@ Les **chips de type** reprennent les couleurs iconiques Bulbapedia (Feu rouge, P
 
 Grille de tentatives **10 colonnes** comparant chaque guess à la cible mystère (sprite, n°, génération, types, couleur, forme, stade d'évolution, hauteur, poids). Code couleur vert/orange/rouge, flèches ↑/↓ pour les valeurs numériques. L'autocomplétion gère les **noms FR** (insensible aux accents — tape "elec" trouve "Électrik"). Badge **🔥 N** dans la TopAppBar pour le suivi de la série de victoires.
 
-### Fiche détail — types colorés en FR
+### Fiche détail — types colorés FR + ligne évolutive + toggle shiny
 
-| Pokémon (vue 1) | Pokémon (vue 2) |
-|---|---|
-| ![Détail 1](screenshots/detail-pokemon1.jpg) | ![Détail 2](screenshots/detail-pokemon2.jpg) |
+| Sprite normal | Sprite shiny (toggle ON) | Avec famille évolutive |
+|---|---|---|
+| ![Détail 1](screenshots/detail-pokemon1.jpg) | ![Détail 1 shiny](screenshots/detail-pokemon1-shiny.jpg) | ![Détail 3](screenshots/detail-pokemon3.jpg) |
 
-Types affichés en français (Plante, Eau, Feu…) avec leurs couleurs iconiques. Les 6 stats apparaissent en barres de progression. Le **FAB** en bas à droite bascule l'état favori (le Pokémon apparaît instantanément dans l'onglet Favoris via le `Flow` Room réactif).
+Types affichés en **français** (Plante, Eau, Feu…) avec leurs **couleurs iconiques** Bulbapedia. Les 6 stats apparaissent en barres de progression. Le **FAB** en bas à droite bascule l'état favori.
+
+**Système shiny** (Pierre) : chaque visite tente un encounter shiny (1/10). Une fois débloqué, l'utilisateur peut **activer/désactiver l'affichage** via un Switch — le sprite normal et le sprite shiny restent tous les deux disponibles, on choisit lequel afficher.
+
+**Famille évolutive** : récupérée via `/pokemon-species` + `/evolution-chain` puis aplatie en liste ordonnée. Affichage en cercles avec sprite officiel, nom FR et n° Pokédex. Le Pokémon courant est mis en évidence (bordure plus épaisse + nom en gras). Gère les chaînes simples (Bulbi → Herbi → Florizarre), branchues (Évoli + 8 évolutions) et solo (section masquée).
+
+### Autre fiche détail
+
+![Détail 2](screenshots/detail-pokemon2.jpg)
 
 ### Onglets bonus (partie Pierre)
 
