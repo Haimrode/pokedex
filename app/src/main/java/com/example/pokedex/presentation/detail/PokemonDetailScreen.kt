@@ -25,8 +25,16 @@ import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
+import androidx.compose.ui.draw.clip
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -48,6 +56,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
+import com.example.pokedex.domain.model.EvolutionMember
 import com.example.pokedex.domain.model.PokemonDetail
 import com.example.pokedex.presentation.common.UiState
 import com.example.pokedex.presentation.common.typeColor
@@ -63,16 +72,23 @@ fun PokemonDetailRoute(
     val isFavorite by viewModel.favoriteState.collectAsStateWithLifecycle()
     val levelProgress by viewModel.levelProgress.collectAsStateWithLifecycle()
     val selectedMoves by viewModel.selectedMoves.collectAsStateWithLifecycle()
+    val evolutionFamily by viewModel.evolutionFamily.collectAsStateWithLifecycle()
+    val isShinyUnlocked by viewModel.isShinyUnlocked.collectAsStateWithLifecycle()
+    val isShinyDisplayed by viewModel.isShinyDisplayed.collectAsStateWithLifecycle()
 
     PokemonDetailScreen(
         uiState = uiState,
         isFavorite = isFavorite,
         levelProgress = levelProgress,
         selectedMoves = selectedMoves,
+        evolutionFamily = evolutionFamily,
+        isShinyUnlocked = isShinyUnlocked,
+        isShinyDisplayed = isShinyDisplayed,
         onSetLevel = viewModel::setLevel,
         onToggleMove = viewModel::toggleMoveSelection,
         onBack = onBack,
         onToggleFavorite = viewModel::onToggleFavorite,
+        onToggleShinyDisplay = viewModel::onToggleShinyDisplay,
         onRetry = viewModel::loadDetail
     )
 }
@@ -84,10 +100,14 @@ fun PokemonDetailScreen(
     isFavorite: Boolean,
     levelProgress: com.example.pokedex.data.local.PokemonLevelProgress,
     selectedMoves: Set<String>,
+    evolutionFamily: List<EvolutionMember>,
+    isShinyUnlocked: Boolean,
+    isShinyDisplayed: Boolean,
     onSetLevel: (Int) -> Unit,
     onToggleMove: (String) -> Unit,
     onBack: () -> Unit,
     onToggleFavorite: () -> Unit,
+    onToggleShinyDisplay: () -> Unit,
     onRetry: () -> Unit
 ) {
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
@@ -151,8 +171,12 @@ fun PokemonDetailScreen(
                 contentPadding = innerPadding,
                 levelProgress = levelProgress,
                 selectedMoves = selectedMoves,
+                evolutionFamily = evolutionFamily,
+                isShinyUnlocked = isShinyUnlocked,
+                isShinyDisplayed = isShinyDisplayed,
                 onSetLevel = onSetLevel,
-                onToggleMove = onToggleMove
+                onToggleMove = onToggleMove,
+                onToggleShinyDisplay = onToggleShinyDisplay,
             )
         }
     }
@@ -213,9 +237,17 @@ private fun DetailContent(
     contentPadding: PaddingValues,
     levelProgress: com.example.pokedex.data.local.PokemonLevelProgress,
     selectedMoves: Set<String>,
+    evolutionFamily: List<EvolutionMember>,
+    isShinyUnlocked: Boolean,
+    isShinyDisplayed: Boolean,
     onSetLevel: (Int) -> Unit,
-    onToggleMove: (String) -> Unit
+    onToggleMove: (String) -> Unit,
+    onToggleShinyDisplay: () -> Unit,
 ) {
+    val displayedSpriteUrl = if (isShinyDisplayed && detail.pokemon.shinySpriteUrl != null)
+        detail.pokemon.shinySpriteUrl
+    else detail.pokemon.spriteUrl
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -232,26 +264,43 @@ private fun DetailContent(
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         AsyncImage(
-            model = detail.pokemon.spriteUrl,
+            model = displayedSpriteUrl,
             contentDescription = detail.pokemon.name,
             modifier = Modifier.size(220.dp),
             contentScale = ContentScale.Fit
         )
 
-        if (detail.pokemon.isShiny) {
+        // Bandeau Shiny (apparait une fois débloqué) : indicateur + toggle on/off
+        if (isShinyUnlocked) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth(),
             ) {
                 Icon(
                     imageVector = Icons.Filled.Star,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.tertiary
                 )
-                Text(
-                    text = "Shiny obtenu en ${detail.pokemon.shinyAttempts ?: 1} tentative(s)",
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Bold
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Shiny débloqué !",
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "Obtenu en ${detail.pokemon.shinyAttempts ?: 1} tentative(s)",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Switch(
+                    checked = isShinyDisplayed,
+                    onCheckedChange = { onToggleShinyDisplay() },
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = MaterialTheme.colorScheme.tertiary,
+                        checkedTrackColor = MaterialTheme.colorScheme.tertiaryContainer,
+                    ),
                 )
             }
             HorizontalDivider(modifier = Modifier.fillMaxWidth())
@@ -305,6 +354,23 @@ private fun DetailContent(
             StatBar(label = "Att. Spé.", value = detail.stats.specialAttack)
             StatBar(label = "Déf. Spé.", value = detail.stats.specialDefense)
             StatBar(label = "Vitesse", value = detail.stats.speed)
+        }
+
+        // Famille évolutive — n'apparaît que si plus d'un membre dans la chaîne.
+        if (evolutionFamily.size > 1) {
+            HorizontalDivider(modifier = Modifier.fillMaxWidth())
+            Text(
+                text = "Famille évolutive",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp)
+            )
+            EvolutionFamilyRow(
+                family = evolutionFamily,
+                currentId = detail.pokemon.id,
+            )
         }
 
         // Level selector
@@ -361,6 +427,70 @@ private fun DetailContent(
 
         // Espace pour ne pas que le FAB cache la dernière stat
         Spacer(Modifier.height(80.dp))
+    }
+}
+
+/**
+ * Affiche la chaîne d'évolution en horizontal scroll : un cercle par
+ * Pokémon avec son sprite + son nom. Le Pokémon courant est mis en
+ * évidence avec une bordure colorée.
+ */
+@Composable
+private fun EvolutionFamilyRow(
+    family: List<EvolutionMember>,
+    currentId: Int,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState())
+            .padding(vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        family.forEach { member ->
+            val isCurrent = member.id == currentId
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.width(96.dp),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(80.dp)
+                        .clip(CircleShape)
+                        .border(
+                            width = if (isCurrent) 3.dp else 1.dp,
+                            color = if (isCurrent) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.outlineVariant,
+                            shape = CircleShape,
+                        ),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    AsyncImage(
+                        model = member.spriteUrl,
+                        contentDescription = member.name,
+                        modifier = Modifier
+                            .size(70.dp)
+                            .padding(4.dp),
+                        contentScale = ContentScale.Fit,
+                    )
+                }
+                Text(
+                    text = member.name,
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Normal,
+                    color = if (isCurrent) MaterialTheme.colorScheme.primary
+                    else MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.padding(top = 4.dp),
+                    maxLines = 1,
+                )
+                Text(
+                    text = "#${member.id.toString().padStart(3, '0')}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
     }
 }
 
