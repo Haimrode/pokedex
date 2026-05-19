@@ -21,13 +21,34 @@ Application Android native en Kotlin consommant l'API publique [PokéAPI](https:
 
 ## Fonctionnalités
 
-- [x] Liste des 100 premiers Pokémons (sprite, numéro Pokédex, nom, types) chargée en parallèle via Coroutines
-- [x] Filtrage local par nom (insensible à la casse) et par type via chips sélectionnables — aucun appel réseau supplémentaire
-- [x] Fiche détaillée par Pokémon (sprite officiel, taille, poids, 6 stats avec barres de progression)
-- [x] Ajout / retrait des favoris depuis la fiche détail (FAB avec icône qui change selon l'état)
-- [x] Onglet Favoris persisté localement avec mise à jour réactive (Room + Flow)
-- [x] Navigation par Bottom Navigation Bar (2 onglets) avec back stack indépendant par onglet
-- [x] TopAppBar collapsable au scroll (UX optimisée pour le mode paysage)
+### Pokédex (onglet principal)
+- [x] **1025 Pokémons** organisés par **génération** (Gen 1 Kanto → Gen 9 Paldea)
+- [x] **Noms en français** chargés depuis un asset local (Bulbizarre, Salamèche, Carapuce…)
+- [x] Recherche par nom **insensible à la casse et aux accents** (tape "elec" → trouve "Électrik")
+- [x] Filtres **Génération + Type** dans une **ModalBottomSheet** (gain d'espace en paysage)
+- [x] Chips de type aux **couleurs iconiques** Bulbapedia (Feu rouge, Eau bleu, Plante vert…)
+- [x] Fiche détaillée : sprite officiel, types colorés FR, taille, poids, 6 stats avec barres
+- [x] TopAppBar collapsable au scroll
+
+### Pokémondle (3ème onglet — mini-jeu façon Wordle)
+- [x] Tire un Pokémon mystère parmi les **1025**
+- [x] Autocomplétion sur les noms FR
+- [x] Grille **10 colonnes** par tentative : sprite + n° + gen + 2 types + couleur + forme + stade + h + p
+- [x] Cellules colorées : 🟢 égal, 🟠 type au mauvais slot, 🔴 différent + flèches ↑/↓ pour les +/-
+- [x] **5 indices progressifs** (cooldown 5 essais) : Gen → Couleur → Type 1 → 1re lettre → Silhouette
+- [x] **Pénalité** : chaque indice utilisé ajoute 2 tentatives au score final
+- [x] Bouton **"Je ne sais pas"** pour passer à un autre Pokémon
+- [x] Suivi du **win streak** 🔥 (série de victoires consécutives)
+
+### Favoris + Jardin + En ligne (Pierre)
+- [x] **Favoris** persistés localement via Room avec Flow réactif (FAB sur la fiche détail)
+- [x] **Jardin** : système de combat tour par tour avec équipe choisie depuis les favoris
+- [⚠️] **En ligne** : mode PvP encore en chantier au moment de la livraison
+
+### Architecture
+- [x] **MVVM + Clean Architecture** strictes en 3 couches (mandatoire par le sujet)
+- [x] **Hilt** pour l'injection de dépendances, **Room** pour la persistance
+- [x] **5 onglets** dans la Bottom Navigation : Pokédex · Favoris · Pokémondle · Jardin · En ligne
 
 ---
 
@@ -104,21 +125,35 @@ Le projet suit le pattern **MVVM** combiné à une **Clean Architecture** en 3 c
 ```
 com.example.pokedex/
 ├── data/
-│   ├── remote/        ← Retrofit API + DTOs
-│   ├── local/         ← Room Entities, DAOs, Database
+│   ├── remote/        ← Retrofit API + DTOs (Pokemon, Species, EvolutionChain)
+│   ├── local/         ← Room Entities, DAOs, PokemonNameLocalizer (FR asset)
+│   ├── cache/         ← PokemonCache (mémoire)
+│   ├── preload/       ← PreloadManager (precharge en arrière-plan)
+│   ├── online/        ← Protocole PvP (Pierre)
 │   └── repository/    ← Implémentations des repositories
 ├── domain/
-│   ├── model/         ← Modèles métier (Pokemon, PokemonDetail)
-│   ├── repository/    ← Interfaces des repositories
-│   └── usecase/       ← Use cases (GetPokemonListUseCase, ToggleFavoriteUseCase…)
+│   ├── model/         ← Pokemon, PokemonDetail, PokemonGameData, Generation,
+│   │                    CellComparison, GuessResult, HintType…
+│   ├── battle/        ← Moteurs de combat tour par tour (Pierre)
+│   ├── repository/    ← Interfaces (PokemonRepository, GameRepository, FavoriteRepository)
+│   └── usecase/       ← Use cases (GetPokemonList, StartNewGame, ValidateGuess…)
 ├── presentation/
-│   ├── list/          ← Écran liste Pokédex + ViewModel
+│   ├── list/          ← Écran Pokédex + ViewModel + filtres
 │   ├── detail/        ← Fiche détail Pokémon + ViewModel
 │   ├── favorites/     ← Liste favoris + ViewModel
-│   └── navigation/    ← Configuration de la navigation
-├── di/                ← Modules Hilt
+│   ├── game/          ← Pokémondle : screen, ViewModel, GuessGrid, HintPanel
+│   ├── garden/        ← Système de combat (Pierre)
+│   ├── online/        ← Mode PvP (Pierre)
+│   ├── common/        ← UiState, PokemonTypeStyling (FR + couleurs)
+│   └── navigation/    ← AppNavigation (5 onglets)
+├── di/                ← Modules Hilt (NetworkModule, PokemonRepositoryModule,
+│                        GameRepositoryModule, FavoriteRepositoryModule)
 └── ui/theme/          ← Thème Material 3
 ```
+
+### Asset embarqué
+
+- `app/src/main/assets/fr_names.json` (~18 KB) — map id Pokémon → nom français pour les 1025 Pokémons. Généré une fois depuis PokéAPI (endpoint `/pokemon-species/{id}`) puis embarqué dans l'APK pour éviter 1025 appels réseau au démarrage.
 
 ---
 
@@ -169,29 +204,37 @@ Ce script lance uniquement `:app:installDebug` et ne déclenche aucun test.
 
 ## Captures d'écran
 
-### Écran principal — onglet Pokédex
+### Pokédex — onglet principal
 
-| En haut de la liste | Après scroll (TopAppBar + recherche collapsées) |
+| Liste avec noms FR + types colorés | Filtres dans une bottom sheet |
 |---|---|
-| ![Pokédex - en haut](screenshots/Pokedex-accueil-avec-barre-de-recherche.jpg) | ![Pokédex - scrollé](screenshots/Pokedex-accueil-sans-barre-de-recherche.jpg) |
+| ![Pokédex](screenshots/pokedex.jpg) | ![Filtres](screenshots/filtre-generation-type.jpg) |
 
-L'en-tête (barre de titre + champ de recherche + chips de filtre) **se replie automatiquement** dès que l'utilisateur scrolle vers le bas, et **réapparaît au moindre scroll vers le haut**. Le tout est piloté par `TopAppBarDefaults.enterAlwaysScrollBehavior()` couplé à `AnimatedVisibility` synchronisé sur la même `collapsedFraction`.
+Les **chips de type** reprennent les couleurs iconiques Bulbapedia (Feu rouge, Plante vert, etc.). Le filtre **Génération + Type** est rangé dans une **ModalBottomSheet** déclenchée par l'icône `Tune` de la TopAppBar — gain massif d'espace, surtout en paysage. Un badge apparaît sur l'icône si au moins un filtre est actif.
 
-### Mode paysage — bénéfice maximal du collapse
+### Pokémondle — mini-jeu façon Wordle
 
-| En haut | Après scroll |
+| Partie en cours |
+|---|
+| ![Pokémondle](screenshots/pokemondle.jpg) |
+
+Grille de tentatives **10 colonnes** comparant chaque guess à la cible mystère (sprite, n°, génération, types, couleur, forme, stade d'évolution, hauteur, poids). Code couleur vert/orange/rouge, flèches ↑/↓ pour les valeurs numériques. L'autocomplétion gère les **noms FR** (insensible aux accents — tape "elec" trouve "Électrik"). Badge **🔥 N** dans la TopAppBar pour le suivi de la série de victoires.
+
+### Fiche détail — types colorés en FR
+
+| Pokémon (vue 1) | Pokémon (vue 2) |
 |---|---|
-| ![Paysage - en haut](screenshots/Pokedex-accueil-avec-barre-de-recherche-incliné.jpg) | ![Paysage - scrollé](screenshots/Pokedex-accueil-sans-barre-de-recherche-incliné.jpg) |
+| ![Détail 1](screenshots/detail-pokemon1.jpg) | ![Détail 2](screenshots/detail-pokemon2.jpg) |
 
-En paysage, l'en-tête prenait initialement ~70 % de la hauteur. Après collapse, la liste occupe presque tout l'écran.
+Types affichés en français (Plante, Eau, Feu…) avec leurs couleurs iconiques. Les 6 stats apparaissent en barres de progression. Le **FAB** en bas à droite bascule l'état favori (le Pokémon apparaît instantanément dans l'onglet Favoris via le `Flow` Room réactif).
 
-### Fiche détail + Favoris
+### Onglets bonus (partie Pierre)
 
-| Fiche détail (avec bouton ❤️ favori) | Onglet Favoris |
-|---|---|
-| ![Détail](screenshots/Detail-pokemon.jpg) | ![Favoris](screenshots/favoris.jpg) |
+| Favoris | Jardin (combat) | En ligne (WIP) |
+|---|---|---|
+| ![Favoris](screenshots/liste-de-favori.jpg) | ![Jardin](screenshots/jardin.jpg) | ![En ligne](screenshots/mode-en-ligne-non-fonctionnel.jpg) |
 
-La fiche détail montre le sprite officiel, les types, la taille (en mètres) et le poids (en kg) convertis depuis les unités brutes de PokéAPI, et les 6 stats de base avec barres de progression. Le **FAB** en bas à droite bascule l'état favori — l'icône passe de contour à plein, et le Pokémon apparaît instantanément dans l'onglet Favoris via le `Flow` Room réactif.
+Le mode **En ligne** (PvP) est marqué comme non fonctionnel à la livraison — backend Socket pas finalisé.
 
 ---
 
@@ -242,10 +285,10 @@ Projet réalisé en binôme :
 
 | Membre | Responsabilités |
 |---|---|
-| **Alexandre** | Couche réseau (Retrofit + PokéAPI), `data/remote`, `PokemonRepositoryImpl`, `NetworkModule` (Hilt), use cases liste/détail, écran liste Pokédex + filtres, écran détail Pokémon |
-| **Pierre** | Base de données locale (Room), `data/local`, `FavoriteRepositoryImpl`, `DatabaseModule` + `RepositoryModule` (Hilt), use cases favoris, écran Favoris, navigation (Bottom Navigation Bar + NavGraphs), intégration `MainActivity` |
+| **Alexandre** | Couche réseau (Retrofit + PokéAPI), `data/remote`, `PokemonRepositoryImpl`, `NetworkModule` Hilt, use cases liste/détail, écran liste Pokédex + filtres (gen + type), écran détail Pokémon, **mini-jeu Pokémondle complet** (3 endpoints combinés, ViewModel avec hint cooldown, grille de comparaison, autocomplétion), **localisation FR** (1025 noms via asset), **styling des types** (couleurs + noms FR) |
+| **Pierre** | Base de données locale (Room), `data/local`, `FavoriteRepositoryImpl`, `DatabaseModule` + `RepositoryModule` Hilt, use cases favoris, écran Favoris, navigation initiale (Bottom Navigation Bar + NavGraphs), intégration `MainActivity`, **système de combat tour par tour** (`domain/battle/*`), **écran Jardin**, **mode En ligne PvP** (non finalisé) |
 
-Les modèles métier (`domain/model/`), les interfaces de repository (`domain/repository/`) et la sealed class `UiState` ont été définis ensemble en amont pour garantir des contrats stables entre les deux côtés.
+Les modèles métier (`domain/model/`), les interfaces de repository (`domain/repository/`) et la sealed class `UiState` ont été définis ensemble en amont pour garantir des contrats stables entre les deux côtés. Le merge final a nécessité d'adapter quelques signatures côté Pierre (ex: `getPokemonList(limit)` → `getPokemonList(Generation)`).
 
 ---
 
