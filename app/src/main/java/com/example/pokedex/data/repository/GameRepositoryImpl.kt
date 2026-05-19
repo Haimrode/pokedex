@@ -1,5 +1,6 @@
 package com.example.pokedex.data.repository
 
+import com.example.pokedex.data.local.PokemonNameLocalizer
 import com.example.pokedex.data.remote.PokemonApi
 import com.example.pokedex.data.remote.mapper.toGameData
 import com.example.pokedex.domain.model.PokemonGameData
@@ -26,13 +27,17 @@ import javax.inject.Singleton
  */
 @Singleton
 class GameRepositoryImpl @Inject constructor(
-    private val api: PokemonApi
+    private val api: PokemonApi,
+    private val localizer: PokemonNameLocalizer,
 ) : GameRepository {
 
     override suspend fun getAllPokemonNames(): Result<List<PokemonRef>> = safeApiCall {
         api.getPokemonList(limit = TOTAL_POKEMONS, offset = 0)
             .results
-            .map { entry -> PokemonRef(id = entry.extractId(), name = entry.name) }
+            .map { entry ->
+                val id = entry.extractId()
+                PokemonRef(id = id, name = localizer.localize(id, entry.name))
+            }
     }
 
     override suspend fun getGameData(id: Int): Result<PokemonGameData> = safeApiCall {
@@ -42,7 +47,8 @@ class GameRepositoryImpl @Inject constructor(
             val pokemon = pokemonDeferred.await()
             val species = speciesDeferred.await()
             val chain = api.getEvolutionChain(species.evolutionChain.extractId())
-            pokemon.toGameData(species, chain)
+            val gameData = pokemon.toGameData(species, chain)
+            gameData.copy(name = localizer.localize(gameData.id, gameData.name))
         }
     }
 

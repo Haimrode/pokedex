@@ -1,5 +1,6 @@
 package com.example.pokedex.data.repository
 
+import com.example.pokedex.data.local.PokemonNameLocalizer
 import com.example.pokedex.data.remote.PokemonApi
 import com.example.pokedex.data.remote.mapper.toDomainDetail
 import com.example.pokedex.data.remote.mapper.toDomainPokemon
@@ -29,7 +30,8 @@ import javax.inject.Singleton
  */
 @Singleton
 class PokemonRepositoryImpl @Inject constructor(
-    private val api: PokemonApi
+    private val api: PokemonApi,
+    private val localizer: PokemonNameLocalizer,
 ) : PokemonRepository {
 
     override suspend fun getPokemonList(generation: Generation): Result<List<Pokemon>> = safeApiCall {
@@ -40,14 +42,22 @@ class PokemonRepositoryImpl @Inject constructor(
         coroutineScope {
             listResponse.results
                 .map { entry ->
-                    async { api.getPokemonDetail(entry.extractId()).toDomainPokemon() }
+                    async {
+                        val p = api.getPokemonDetail(entry.extractId()).toDomainPokemon()
+                        p.copy(name = localizer.localize(p.id, p.name))
+                    }
                 }
                 .awaitAll()
         }
     }
 
     override suspend fun getPokemonDetail(id: Int): Result<PokemonDetail> = safeApiCall {
-        api.getPokemonDetail(id).toDomainDetail()
+        val detail = api.getPokemonDetail(id).toDomainDetail()
+        detail.copy(
+            pokemon = detail.pokemon.copy(
+                name = localizer.localize(detail.pokemon.id, detail.pokemon.name)
+            )
+        )
     }
 
     /**
