@@ -3,6 +3,7 @@ package com.example.pokedex.presentation.navigation
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.filled.Casino
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material3.Icon
@@ -24,11 +25,13 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.pokedex.presentation.detail.PokemonDetailRoute
 import com.example.pokedex.presentation.favorites.FavoritesRoute
+import com.example.pokedex.presentation.game.GameScreen
 import com.example.pokedex.presentation.list.PokemonListScreen
 
 private object Routes {
     const val POKEDEX = "pokedex"
     const val FAVORITES = "favorites"
+    const val GAME = "game"
     const val DETAIL_PATTERN = "detail/{id}"
     const val DETAIL_ARG_ID = "id"
 
@@ -54,12 +57,23 @@ private sealed class BottomDestination(
         icon = Icons.Filled.FavoriteBorder,
         selectedIcon = Icons.Filled.Favorite
     )
+
+    data object Game : BottomDestination(
+        route = Routes.GAME,
+        label = "Pokémondle",
+        icon = Icons.Filled.Casino,
+        selectedIcon = Icons.Filled.Casino
+    )
 }
 
 @Composable
 fun AppNavigation() {
     val navController = rememberNavController()
-    val destinations = listOf(BottomDestination.Pokedex, BottomDestination.Favorites)
+    val destinations = listOf(
+        BottomDestination.Pokedex,
+        BottomDestination.Favorites,
+        BottomDestination.Game,
+    )
 
     val navigateToDetail: (Int) -> Unit = { id ->
         navController.navigate(Routes.detail(id))
@@ -81,6 +95,9 @@ fun AppNavigation() {
             }
             composable(Routes.FAVORITES) {
                 FavoritesRoute(onPokemonClick = navigateToDetail)
+            }
+            composable(Routes.GAME) {
+                GameScreen()
             }
             composable(
                 route = Routes.DETAIL_PATTERN,
