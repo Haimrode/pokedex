@@ -1,6 +1,7 @@
 package com.example.pokedex.presentation.game.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -8,11 +9,11 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material3.AssistChip
-import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -73,10 +74,14 @@ fun HintPanel(
         }
 
         if (mystery != null && revealedHints.isNotEmpty()) {
+            // horizontalScroll : avec 5 indices possibles, on déborde en portrait.
+            // Le joueur scrolle pour voir les indices au-delà de l'écran.
             Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth(),
             ) {
                 revealedHints
                     .sortedBy { it.ordinal }
@@ -89,19 +94,23 @@ fun HintPanel(
 @Composable
 private fun HintChip(hint: HintType, mystery: PokemonGameData) {
     when (hint) {
-        HintType.SILHOUETTE -> SilhouetteChip(mystery.spriteUrl)
-        HintType.FIRST_LETTER -> AssistChip(
+        HintType.GENERATION -> AssistChip(
             onClick = {},
-            label = { Text("1re lettre : ${mystery.name.first().uppercase()}") },
-        )
-        HintType.TYPE_1 -> AssistChip(
-            onClick = {},
-            label = { Text("Type 1 : ${mystery.type1.replaceFirstChar { it.uppercase() }}") },
+            label = { Text("Génération : Gen ${mystery.generation.number}") },
         )
         HintType.COLOR -> AssistChip(
             onClick = {},
             label = { Text("Couleur : ${mystery.color.replaceFirstChar { it.uppercase() }}") },
         )
+        HintType.TYPE_1 -> AssistChip(
+            onClick = {},
+            label = { Text("Type 1 : ${mystery.type1.replaceFirstChar { it.uppercase() }}") },
+        )
+        HintType.FIRST_LETTER -> AssistChip(
+            onClick = {},
+            label = { Text("1re lettre : ${mystery.name.first().uppercase()}") },
+        )
+        HintType.SILHOUETTE -> SilhouetteChip(mystery.spriteUrl)
     }
 }
 

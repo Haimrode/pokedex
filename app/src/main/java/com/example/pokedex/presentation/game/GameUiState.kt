@@ -26,6 +26,7 @@ data class GameUiState(
     val suggestions: List<PokemonRef> = emptyList(),
     val isValidating: Boolean = false,
     val isWon: Boolean = false,
+    val isGivenUp: Boolean = false,
     val revealedHints: Set<HintType> = emptySet(),
     val guessesSinceLastHint: Int = 0,
     val error: String? = null,
@@ -33,15 +34,27 @@ data class GameUiState(
     /**
      * `true` quand le joueur a fait assez de tentatives depuis le dernier
      * indice ET qu'il reste des indices non révélés ET que la partie est
-     * en cours.
+     * en cours (ni gagnée ni abandonnée).
      */
     val canRequestHint: Boolean
         get() = mystery != null &&
             !isWon &&
+            !isGivenUp &&
             guessesSinceLastHint >= HintType.COOLDOWN_GUESSES &&
             revealedHints.size < HintType.entries.size
 
     /** Tentatives manquantes avant que le prochain indice soit disponible. */
     val remainingCooldown: Int
         get() = (HintType.COOLDOWN_GUESSES - guessesSinceLastHint).coerceAtLeast(0)
+
+    /**
+     * Pénalité : chaque indice utilisé coûte [HintType.PENALTY_PER_HINT]
+     * tentatives "fantômes" qui s'ajoutent au score affiché à la victoire.
+     */
+    val penaltyAttempts: Int
+        get() = revealedHints.size * HintType.PENALTY_PER_HINT
+
+    /** Score final affiché : vraies tentatives + pénalité d'indices. */
+    val totalAttemptsWithPenalty: Int
+        get() = guesses.size + penaltyAttempts
 }

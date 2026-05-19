@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Casino
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -80,6 +81,12 @@ fun GameScreen(viewModel: GameViewModel = hiltViewModel()) {
                         Text("Pokémondle", fontWeight = FontWeight.Bold)
                     },
                     actions = {
+                        IconButton(
+                            onClick = viewModel::onGiveUp,
+                            enabled = state.mystery != null && !state.isWon && !state.isGivenUp,
+                        ) {
+                            Icon(Icons.Default.SkipNext, contentDescription = "Je ne sais pas")
+                        }
                         IconButton(onClick = viewModel::onRestart) {
                             Icon(Icons.Default.Refresh, contentDescription = "Nouvelle partie")
                         }
@@ -134,7 +141,16 @@ fun GameScreen(viewModel: GameViewModel = hiltViewModel()) {
             if (state.isWon && state.mystery != null) {
                 VictoryDialog(
                     mystery = state.mystery!!,
-                    guessCount = state.guesses.size,
+                    realAttempts = state.guesses.size,
+                    penaltyAttempts = state.penaltyAttempts,
+                    totalAttempts = state.totalAttemptsWithPenalty,
+                    onRestart = viewModel::onRestart,
+                )
+            }
+            if (state.isGivenUp && state.mystery != null) {
+                GiveUpDialog(
+                    mystery = state.mystery!!,
+                    attemptsMade = state.guesses.size,
                     onRestart = viewModel::onRestart,
                 )
             }
@@ -184,7 +200,9 @@ private fun EmptyStateContent(onRestart: () -> Unit) {
 @Composable
 private fun VictoryDialog(
     mystery: PokemonGameData,
-    guessCount: Int,
+    realAttempts: Int,
+    penaltyAttempts: Int,
+    totalAttempts: Int,
     onRestart: () -> Unit,
 ) {
     AlertDialog(
@@ -213,14 +231,78 @@ private fun VictoryDialog(
                     fontWeight = FontWeight.Bold,
                 )
                 Text(
-                    text = "Trouvé en $guessCount tentative" + if (guessCount > 1) "s" else "",
+                    text = "Trouvé en $totalAttempts tentative" + if (totalAttempts > 1) "s" else "",
                     style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.padding(top = 8.dp),
                 )
+                if (penaltyAttempts > 0) {
+                    Text(
+                        text = "($realAttempts vraie" + (if (realAttempts > 1) "s " else " ") +
+                            "+ $penaltyAttempts " +
+                            (if (penaltyAttempts > 1) "tentatives" else "tentative") +
+                            " à cause des indices)",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(top = 4.dp, start = 16.dp, end = 16.dp),
+                    )
+                }
             }
         },
         confirmButton = {
             Button(onClick = onRestart) { Text("Rejouer") }
+        },
+    )
+}
+
+@Composable
+private fun GiveUpDialog(
+    mystery: PokemonGameData,
+    attemptsMade: Int,
+    onRestart: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onRestart,
+        title = {
+            Text(
+                text = "Pas de souci 👀",
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        },
+        text = {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(
+                    text = "Le Pokémon mystère était :",
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+                AsyncImage(
+                    model = mystery.spriteUrl,
+                    contentDescription = mystery.name,
+                    modifier = Modifier.size(140.dp).padding(top = 8.dp),
+                )
+                Text(
+                    text = mystery.name,
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                )
+                if (attemptsMade > 0) {
+                    Text(
+                        text = "Tu avais fait $attemptsMade tentative" +
+                            if (attemptsMade > 1) "s" else "",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 8.dp),
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            Button(onClick = onRestart) { Text("Nouveau Pokémon") }
         },
     )
 }

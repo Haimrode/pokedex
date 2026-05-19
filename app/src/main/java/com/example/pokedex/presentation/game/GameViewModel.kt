@@ -82,7 +82,7 @@ class GameViewModel @Inject constructor(
 
     fun onGuessSelected(ref: PokemonRef) {
         val state = _uiState.value
-        if (state.mystery == null || state.isValidating || state.isWon) return
+        if (state.mystery == null || state.isValidating || state.isWon || state.isGivenUp) return
         if (state.guesses.any { it.guess.id == ref.id }) return
 
         viewModelScope.launch {
@@ -124,6 +124,18 @@ class GameViewModel @Inject constructor(
                 revealedHints = state.revealedHints + nextHint,
                 guessesSinceLastHint = 0,
             )
+        }
+    }
+
+    /**
+     * Le joueur abandonne. On passe en état `isGivenUp` : l'UI affiche le
+     * Pokémon mystère et propose de rejouer. Le score n'est pas archivé
+     * (pas de "défaite" enregistrée — c'est juste un skip).
+     */
+    fun onGiveUp() {
+        _uiState.update { state ->
+            if (state.mystery == null || state.isWon) return@update state
+            state.copy(isGivenUp = true)
         }
     }
 
