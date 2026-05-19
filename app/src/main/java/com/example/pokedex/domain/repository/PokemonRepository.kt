@@ -1,5 +1,6 @@
 package com.example.pokedex.domain.repository
 
+import com.example.pokedex.domain.model.EvolutionMember
 import com.example.pokedex.domain.model.Generation
 import com.example.pokedex.domain.model.Pokemon
 import com.example.pokedex.domain.model.PokemonDetail
@@ -27,4 +28,11 @@ interface PokemonRepository {
 
     /** Récupère la fiche détaillée d'un Pokémon par son [id] Pokédex. */
     suspend fun getPokemonDetail(id: Int): Result<PokemonDetail>
+
+    /**
+     * Récupère la famille évolutive du Pokémon (tous les membres de sa chaîne
+     * d'évolution), à plat dans l'ordre racine → évolutions. Renvoie une liste
+     * vide si l'API échoue ou si le Pokémon est seul (forme unique).
+     */
+    suspend fun getEvolutionFamily(pokemonId: Int): Result<List<EvolutionMember>>
 }
