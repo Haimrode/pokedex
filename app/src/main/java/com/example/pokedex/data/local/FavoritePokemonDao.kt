@@ -22,6 +22,9 @@ interface FavoritePokemonDao {
     @Query("SELECT * FROM favorite_pokemon ORDER BY id ASC")
     fun getAll(): Flow<List<FavoritePokemon>>
 
+    @Query("SELECT * FROM favorite_pokemon WHERE id = :id LIMIT 1")
+    fun getById(id: Int): Flow<FavoritePokemon?>
+
     @Query("SELECT COUNT(*) FROM favorite_pokemon WHERE id = :id")
     fun isFavorite(id: Int): Flow<Int>
 }

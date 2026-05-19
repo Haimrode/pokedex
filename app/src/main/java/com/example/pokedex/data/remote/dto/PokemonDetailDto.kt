@@ -17,11 +17,13 @@ data class PokemonDetailDto(
     val sprites: SpritesDto,
     val types: List<TypeSlotDto>,
     val abilities: List<AbilitySlotDto>,
-    val stats: List<StatDto>
+    val stats: List<StatDto>,
+    val moves: List<MoveSlotDto>
 )
 
 data class SpritesDto(
     @SerializedName("front_default") val frontDefault: String?,
+    @SerializedName("front_shiny") val frontShiny: String?,
     val other: OtherSpritesDto?
 )
 
@@ -30,7 +32,8 @@ data class OtherSpritesDto(
 )
 
 data class OfficialArtworkDto(
-    @SerializedName("front_default") val frontDefault: String?
+    @SerializedName("front_default") val frontDefault: String?,
+    @SerializedName("front_shiny") val frontShiny: String?
 )
 
 data class TypeSlotDto(
@@ -48,6 +51,10 @@ data class StatDto(
     @SerializedName("base_stat") val baseStat: Int,
     val effort: Int,
     val stat: NamedResourceDto
+)
+
+data class MoveSlotDto(
+    val move: NamedResourceDto
 )
 
 /**

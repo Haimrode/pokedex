@@ -6,6 +6,7 @@ import com.example.pokedex.data.remote.mapper.toDomainPokemon
 import com.example.pokedex.domain.model.Pokemon
 import com.example.pokedex.domain.model.PokemonDetail
 import com.example.pokedex.domain.repository.PokemonRepository
+import com.example.pokedex.data.cache.PokemonCache
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -32,13 +33,18 @@ class PokemonRepositoryImpl @Inject constructor(
 ) : PokemonRepository {
 
     override suspend fun getPokemonList(limit: Int): Result<List<Pokemon>> = safeApiCall {
-        val listResponse = api.getPokemonList(limit = limit)
-        coroutineScope {
-            listResponse.results
-                .map { entry ->
-                    async { api.getPokemonDetail(entry.extractId()).toDomainPokemon() }
-                }
-                .awaitAll()
+        // Return cached list if available to speed up app launch / reduce network usage
+        PokemonCache.get() ?: run {
+            val listResponse = api.getPokemonList(limit = limit)
+            coroutineScope {
+                listResponse.results
+                    .map { entry ->
+                        async { api.getPokemonDetail(entry.extractId()).toDomainPokemon() }
+                    }
+                    .awaitAll().also { fetched ->
+                        PokemonCache.set(fetched)
+                    }
+            }
         }
     }
 

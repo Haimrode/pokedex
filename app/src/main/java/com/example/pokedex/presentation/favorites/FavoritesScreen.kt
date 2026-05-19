@@ -164,6 +164,13 @@ private fun PokemonFavoriteCard(
                     text = pokemon.types.joinToString(separator = " • ") { it.asDisplayName() },
                     style = MaterialTheme.typography.bodyMedium
                 )
+                if (pokemon.spriteUrl.contains("shiny", ignoreCase = true)) {
+                    Text(
+                        text = "Shiny",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.tertiary
+                    )
+                }
             }
 
             Icon(

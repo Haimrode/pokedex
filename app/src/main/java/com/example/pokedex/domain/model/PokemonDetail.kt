@@ -15,7 +15,8 @@ data class PokemonDetail(
     val height: Double,
     val weight: Double,
     val abilities: List<String>,
-    val stats: PokemonStats
+    val stats: PokemonStats,
+    val moves: List<String> = emptyList()
 )
 
 /**
