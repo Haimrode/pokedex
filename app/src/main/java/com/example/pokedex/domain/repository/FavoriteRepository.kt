@@ -22,6 +22,9 @@ interface FavoriteRepository {
     /** Émet `true`/`false` selon que le Pokémon [id] est favori. */
     fun isFavorite(id: Int): Flow<Boolean>
 
+    /** Émet le favori complet pour [id], ou `null` s'il n'existe pas. */
+    fun observeFavorite(id: Int): Flow<Pokemon?>
+
     /** Ajoute [pokemon] aux favoris. Idempotent : déjà favori = no-op. */
     suspend fun addFavorite(pokemon: Pokemon)
 

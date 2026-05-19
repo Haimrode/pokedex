@@ -22,6 +22,11 @@ class FavoriteRepositoryImpl @Inject constructor(
     override fun isFavorite(id: Int): Flow<Boolean> =
         favoritePokemonDao.isFavorite(id).map { count -> count > 0 }
 
+    override fun observeFavorite(id: Int): Flow<Pokemon?> =
+        favoritePokemonDao.getById(id).map { favorite ->
+            favorite?.toDomain()
+        }
+
     override suspend fun addFavorite(pokemon: Pokemon) {
         favoritePokemonDao.insert(pokemon.toEntity())
     }

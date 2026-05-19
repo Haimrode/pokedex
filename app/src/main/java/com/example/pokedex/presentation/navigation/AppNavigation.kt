@@ -4,8 +4,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Casino
+import androidx.compose.material.icons.filled.Eco
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.Public
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -26,12 +28,16 @@ import androidx.navigation.navArgument
 import com.example.pokedex.presentation.detail.PokemonDetailRoute
 import com.example.pokedex.presentation.favorites.FavoritesRoute
 import com.example.pokedex.presentation.game.GameScreen
+import com.example.pokedex.presentation.garden.GardenRoute
 import com.example.pokedex.presentation.list.PokemonListScreen
+import com.example.pokedex.presentation.online.OnlinePvpRoute
 
 private object Routes {
     const val POKEDEX = "pokedex"
     const val FAVORITES = "favorites"
     const val GAME = "game"
+    const val GARDEN = "garden"
+    const val ONLINE = "online"
     const val DETAIL_PATTERN = "detail/{id}"
     const val DETAIL_ARG_ID = "id"
 
@@ -64,6 +70,20 @@ private sealed class BottomDestination(
         icon = Icons.Filled.Casino,
         selectedIcon = Icons.Filled.Casino
     )
+
+    data object Garden : BottomDestination(
+        route = Routes.GARDEN,
+        label = "Jardin",
+        icon = Icons.Filled.Eco,
+        selectedIcon = Icons.Filled.Eco
+    )
+
+    data object Online : BottomDestination(
+        route = Routes.ONLINE,
+        label = "En ligne",
+        icon = Icons.Filled.Public,
+        selectedIcon = Icons.Filled.Public
+    )
 }
 
 @Composable
@@ -73,6 +93,8 @@ fun AppNavigation() {
         BottomDestination.Pokedex,
         BottomDestination.Favorites,
         BottomDestination.Game,
+        BottomDestination.Garden,
+        BottomDestination.Online,
     )
 
     val navigateToDetail: (Int) -> Unit = { id ->
@@ -98,6 +120,12 @@ fun AppNavigation() {
             }
             composable(Routes.GAME) {
                 GameScreen()
+            }
+            composable(Routes.GARDEN) {
+                GardenRoute(onPokemonClick = navigateToDetail)
+            }
+            composable(Routes.ONLINE) {
+                OnlinePvpRoute(onPokemonClick = navigateToDetail)
             }
             composable(
                 route = Routes.DETAIL_PATTERN,

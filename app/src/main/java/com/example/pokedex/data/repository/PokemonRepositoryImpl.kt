@@ -25,6 +25,9 @@ import javax.inject.Singleton
  *    100 requêtes lancées en même temps → temps total ≈ requête la plus lente.
  *  - [awaitAll] préserve l'ordre des entrées, donc la liste reste triée par id.
  *
+ * **Localisation FR** : chaque nom passé par `localizer.localize(id, fallback)`
+ * avant de remonter au domain. L'UI voit donc "Bulbizarre" et plus "bulbasaur".
+ *
  * **Gestion d'erreur** : on wrap dans [Result] via le helper [safeApiCall].
  * Le ViewModel décide quoi en faire (mapping vers UiState.Error, retry, etc.).
  */

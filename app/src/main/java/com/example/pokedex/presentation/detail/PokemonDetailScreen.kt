@@ -20,10 +20,12 @@ import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -59,10 +61,16 @@ fun PokemonDetailRoute(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val isFavorite by viewModel.favoriteState.collectAsStateWithLifecycle()
+    val levelProgress by viewModel.levelProgress.collectAsStateWithLifecycle()
+    val selectedMoves by viewModel.selectedMoves.collectAsStateWithLifecycle()
 
     PokemonDetailScreen(
         uiState = uiState,
         isFavorite = isFavorite,
+        levelProgress = levelProgress,
+        selectedMoves = selectedMoves,
+        onSetLevel = viewModel::setLevel,
+        onToggleMove = viewModel::toggleMoveSelection,
         onBack = onBack,
         onToggleFavorite = viewModel::onToggleFavorite,
         onRetry = viewModel::loadDetail
@@ -74,6 +82,10 @@ fun PokemonDetailRoute(
 fun PokemonDetailScreen(
     uiState: UiState<PokemonDetail>,
     isFavorite: Boolean,
+    levelProgress: com.example.pokedex.data.local.PokemonLevelProgress,
+    selectedMoves: Set<String>,
+    onSetLevel: (Int) -> Unit,
+    onToggleMove: (String) -> Unit,
     onBack: () -> Unit,
     onToggleFavorite: () -> Unit,
     onRetry: () -> Unit
@@ -136,7 +148,11 @@ fun PokemonDetailScreen(
             )
             is UiState.Success -> DetailContent(
                 detail = uiState.data,
-                contentPadding = innerPadding
+                contentPadding = innerPadding,
+                levelProgress = levelProgress,
+                selectedMoves = selectedMoves,
+                onSetLevel = onSetLevel,
+                onToggleMove = onToggleMove
             )
         }
     }
@@ -194,7 +210,11 @@ private fun ErrorContent(
 @Composable
 private fun DetailContent(
     detail: PokemonDetail,
-    contentPadding: PaddingValues
+    contentPadding: PaddingValues,
+    levelProgress: com.example.pokedex.data.local.PokemonLevelProgress,
+    selectedMoves: Set<String>,
+    onSetLevel: (Int) -> Unit,
+    onToggleMove: (String) -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -217,6 +237,25 @@ private fun DetailContent(
             modifier = Modifier.size(220.dp),
             contentScale = ContentScale.Fit
         )
+
+        if (detail.pokemon.isShiny) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Star,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.tertiary
+                )
+                Text(
+                    text = "Shiny obtenu en ${detail.pokemon.shinyAttempts ?: 1} tentative(s)",
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+            HorizontalDivider(modifier = Modifier.fillMaxWidth())
+        }
 
         // Types (chips) — couleurs iconiques + libellés FR (Feu, Eau, Plante…).
         Row(
@@ -266,6 +305,58 @@ private fun DetailContent(
             StatBar(label = "Att. Spé.", value = detail.stats.specialAttack)
             StatBar(label = "Déf. Spé.", value = detail.stats.specialDefense)
             StatBar(label = "Vitesse", value = detail.stats.speed)
+        }
+
+        // Level selector
+        HorizontalDivider(modifier = Modifier.fillMaxWidth())
+        Text(
+            text = "Niveau: ${levelProgress.level}",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.fillMaxWidth()
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Button(onClick = { onSetLevel((levelProgress.level - 1).coerceAtLeast(1)) }) {
+                Text("-")
+            }
+            Button(onClick = { onSetLevel(levelProgress.level + 1) }) {
+                Text("+")
+            }
+            Text(
+                text = "(${levelProgress.unlockedMoveCount} attaques debloquées)",
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.align(Alignment.CenterVertically)
+            )
+        }
+
+        // Moves selection
+        HorizontalDivider(modifier = Modifier.fillMaxWidth())
+        Text(
+            text = "Attaques",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.fillMaxWidth()
+        )
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            val moves = detail.moves.distinct()
+            Text(
+                text = "Selection: ${selectedMoves.size}/${levelProgress.unlockedMoveCount}",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            moves.chunked(3).forEach { chunk ->
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    chunk.forEach { move ->
+                        val enabled = selectedMoves.contains(move) || selectedMoves.size < levelProgress.unlockedMoveCount
+                        androidx.compose.material3.FilterChip(
+                            selected = selectedMoves.contains(move),
+                            onClick = { onToggleMove(move) },
+                            enabled = enabled,
+                            label = { Text(move.replaceFirstChar { it.uppercase() }) }
+                        )
+                    }
+                }
+            }
         }
 
         // Espace pour ne pas que le FAB cache la dernière stat

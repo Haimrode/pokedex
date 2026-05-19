@@ -22,7 +22,8 @@ fun PokemonDetailDto.toDomainPokemon(): Pokemon = Pokemon(
     types = types
         .sortedBy { it.slot } // garde l'ordre type1, type2
         .map { it.type.name },
-    spriteUrl = pickBestSpriteUrl()
+    spriteUrl = pickBestSpriteUrl(),
+    shinySpriteUrl = pickBestShinySpriteUrl()
 )
 
 /** Construit un [PokemonDetail] complet depuis le DTO.
@@ -41,7 +42,11 @@ fun PokemonDetailDto.toDomainDetail(): PokemonDetail = PokemonDetail(
     abilities = abilities
         .sortedBy { it.slot }
         .map { it.ability.name },
-    stats = mapStats()
+    stats = mapStats(),
+    moves = moves
+        .map { it.move.name }
+        .distinct()
+        .take(4)
 )
 
 /**
@@ -52,6 +57,10 @@ private fun PokemonDetailDto.pickBestSpriteUrl(): String =
     sprites.other?.officialArtwork?.frontDefault
         ?: sprites.frontDefault
         ?: ""
+
+private fun PokemonDetailDto.pickBestShinySpriteUrl(): String? =
+    sprites.other?.officialArtwork?.frontShiny
+        ?: sprites.frontShiny
 
 /**
  * PokéAPI renvoie les stats dans un List<StatDto> avec un nom textuel pour chacune.

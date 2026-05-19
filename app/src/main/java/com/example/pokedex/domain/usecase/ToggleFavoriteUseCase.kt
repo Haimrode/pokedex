@@ -15,11 +15,18 @@ import javax.inject.Inject
 class ToggleFavoriteUseCase @Inject constructor(
     private val repository: FavoriteRepository
 ) {
-    suspend operator fun invoke(pokemon: Pokemon, isCurrentlyFavorite: Boolean) {
-        if (isCurrentlyFavorite) {
-            repository.removeFavorite(pokemon.id)
-        } else {
+    suspend operator fun invoke(pokemon: Pokemon, currentFavorite: Pokemon?) {
+        if (currentFavorite == null) {
             repository.addFavorite(pokemon)
+            return
         }
+
+        // Si la variante visuelle change (normal <-> shiny), on remplace le favori.
+        if (currentFavorite.spriteUrl != pokemon.spriteUrl) {
+            repository.addFavorite(pokemon)
+            return
+        }
+
+        repository.removeFavorite(pokemon.id)
     }
 }
