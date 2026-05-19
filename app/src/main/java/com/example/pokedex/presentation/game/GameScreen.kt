@@ -1,5 +1,11 @@
 package com.example.pokedex.presentation.game
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -26,10 +32,12 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -46,6 +54,14 @@ import com.example.pokedex.presentation.game.components.PokemonAutocompleteField
 fun GameScreen(viewModel: GameViewModel = hiltViewModel()) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHost = remember { SnackbarHostState() }
+    val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
+
+    // Même pattern que sur le Pokédex : HintPanel + AutocompleteField se cachent
+    // quand l'utilisateur scrolle la grille vers le bas (utile en paysage)
+    // et réapparaissent dès qu'il remonte.
+    val showExtras by remember {
+        derivedStateOf { scrollBehavior.state.collapsedFraction < 0.5f }
+    }
 
     LaunchedEffect(state.error) {
         val message = state.error ?: return@LaunchedEffect
@@ -54,20 +70,53 @@ fun GameScreen(viewModel: GameViewModel = hiltViewModel()) {
     }
 
     Scaffold(
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
-            TopAppBar(
-                title = {
-                    Text("Pokémondle", fontWeight = FontWeight.Bold)
-                },
-                actions = {
-                    IconButton(onClick = viewModel::onRestart) {
-                        Icon(Icons.Default.Refresh, contentDescription = "Nouvelle partie")
+            Column(
+                modifier = Modifier.background(MaterialTheme.colorScheme.surface)
+            ) {
+                TopAppBar(
+                    title = {
+                        Text("Pokémondle", fontWeight = FontWeight.Bold)
+                    },
+                    actions = {
+                        IconButton(onClick = viewModel::onRestart) {
+                            Icon(Icons.Default.Refresh, contentDescription = "Nouvelle partie")
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    ),
+                    scrollBehavior = scrollBehavior,
+                )
+                AnimatedVisibility(
+                    visible = showExtras && state.mystery != null,
+                    enter = expandVertically() + fadeIn(),
+                    exit = shrinkVertically() + fadeOut(),
+                ) {
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                        modifier = Modifier.padding(top = 8.dp, bottom = 4.dp),
+                    ) {
+                        HintPanel(
+                            canRequestHint = state.canRequestHint,
+                            remainingCooldown = state.remainingCooldown,
+                            revealedHints = state.revealedHints,
+                            mystery = state.mystery,
+                            onRequestHint = viewModel::onRequestHint,
+                        )
+                        PokemonAutocompleteField(
+                            value = state.currentInput,
+                            onValueChange = viewModel::onInputChange,
+                            suggestions = state.suggestions,
+                            onSuggestionClick = viewModel::onGuessSelected,
+                            enabled = !state.isValidating && !state.isWon,
+                            isValidating = state.isValidating,
+                            modifier = Modifier.padding(horizontal = 12.dp),
+                        )
                     }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                ),
-            )
+                }
+            }
         },
         snackbarHost = {
             SnackbarHost(hostState = snackbarHost) { data -> Snackbar(data) }
@@ -77,11 +126,9 @@ fun GameScreen(viewModel: GameViewModel = hiltViewModel()) {
             when {
                 state.isLoading && state.mystery == null -> LoadingContent()
                 state.mystery == null -> EmptyStateContent(onRestart = viewModel::onRestart)
-                else -> GameContent(
-                    state = state,
-                    onInputChange = viewModel::onInputChange,
-                    onGuessSelected = viewModel::onGuessSelected,
-                    onRequestHint = viewModel::onRequestHint,
+                else -> GuessGrid(
+                    guesses = state.guesses,
+                    modifier = Modifier.fillMaxSize().padding(horizontal = 4.dp),
                 )
             }
             if (state.isWon && state.mystery != null) {
@@ -92,40 +139,6 @@ fun GameScreen(viewModel: GameViewModel = hiltViewModel()) {
                 )
             }
         }
-    }
-}
-
-@Composable
-private fun GameContent(
-    state: GameUiState,
-    onInputChange: (String) -> Unit,
-    onGuessSelected: (com.example.pokedex.domain.model.PokemonRef) -> Unit,
-    onRequestHint: () -> Unit,
-) {
-    Column(
-        modifier = Modifier.fillMaxSize().padding(top = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
-    ) {
-        HintPanel(
-            canRequestHint = state.canRequestHint,
-            remainingCooldown = state.remainingCooldown,
-            revealedHints = state.revealedHints,
-            mystery = state.mystery,
-            onRequestHint = onRequestHint,
-        )
-        PokemonAutocompleteField(
-            value = state.currentInput,
-            onValueChange = onInputChange,
-            suggestions = state.suggestions,
-            onSuggestionClick = onGuessSelected,
-            enabled = !state.isValidating && !state.isWon,
-            isValidating = state.isValidating,
-            modifier = Modifier.padding(horizontal = 12.dp),
-        )
-        GuessGrid(
-            guesses = state.guesses,
-            modifier = Modifier.fillMaxSize().padding(horizontal = 4.dp),
-        )
     }
 }
 
