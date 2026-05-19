@@ -7,8 +7,9 @@ import javax.inject.Inject
 /**
  * Use case : bascule l'état favori d'un Pokémon.
  *
- * Le caller (typiquement le bouton ❤️ de l'écran détail) lui passe
- * l'état actuel — le use case décide d'add ou de remove en conséquence.
+ * Comportement : ajoute si absent, retire si présent. **C'est un toggle pur,
+ * basé uniquement sur l'id** — peu importe que le sprite affiché soit normal
+ * ou shiny au moment du clic, le user veut juste retirer son favori.
  *
  * Idempotent : retoggle deux fois revient à l'état initial.
  */
@@ -18,15 +19,8 @@ class ToggleFavoriteUseCase @Inject constructor(
     suspend operator fun invoke(pokemon: Pokemon, currentFavorite: Pokemon?) {
         if (currentFavorite == null) {
             repository.addFavorite(pokemon)
-            return
+        } else {
+            repository.removeFavorite(pokemon.id)
         }
-
-        // Si la variante visuelle change (normal <-> shiny), on remplace le favori.
-        if (currentFavorite.spriteUrl != pokemon.spriteUrl) {
-            repository.addFavorite(pokemon)
-            return
-        }
-
-        repository.removeFavorite(pokemon.id)
     }
 }
