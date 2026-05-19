@@ -113,6 +113,9 @@ class GameViewModel @Inject constructor(
                             guesses = current.guesses + result,
                             guessesSinceLastHint = current.guessesSinceLastHint + 1,
                             isWon = result.isExactMatch,
+                            currentStreak = if (result.isExactMatch)
+                                current.currentStreak + 1
+                            else current.currentStreak,
                         )
                     }
                 },
@@ -147,15 +150,24 @@ class GameViewModel @Inject constructor(
     fun onGiveUp() {
         _uiState.update { state ->
             if (state.mystery == null || state.isWon) return@update state
-            state.copy(isGivenUp = true)
+            // Abandon = série brisée → reset du streak.
+            state.copy(isGivenUp = true, currentStreak = 0)
         }
     }
 
     fun onRestart() {
         viewModelScope.launch {
-            val cachedNames = _uiState.value.allNames
+            val previous = _uiState.value
+            // On garde le streak si la partie précédente est gagnée OU si c'est
+            // le premier chargement. Un restart en plein jeu = reset (abandon implicite).
+            val streakToCarry = if (previous.isWon || previous.mystery == null)
+                previous.currentStreak else 0
             _uiState.update {
-                GameUiState(isLoading = true, allNames = cachedNames)
+                GameUiState(
+                    isLoading = true,
+                    allNames = previous.allNames,
+                    currentStreak = streakToCarry,
+                )
             }
             startNewGame().fold(
                 onSuccess = { mystery ->

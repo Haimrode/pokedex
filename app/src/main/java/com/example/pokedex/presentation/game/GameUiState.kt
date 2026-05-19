@@ -29,6 +29,7 @@ data class GameUiState(
     val isGivenUp: Boolean = false,
     val revealedHints: Set<HintType> = emptySet(),
     val guessesSinceLastHint: Int = 0,
+    val currentStreak: Int = 0,
     val error: String? = null,
 ) {
     /**

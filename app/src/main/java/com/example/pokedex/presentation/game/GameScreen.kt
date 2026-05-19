@@ -9,12 +9,17 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Casino
+import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material3.AlertDialog
@@ -28,6 +33,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -81,6 +87,9 @@ fun GameScreen(viewModel: GameViewModel = hiltViewModel()) {
                         Text("Pokémondle", fontWeight = FontWeight.Bold)
                     },
                     actions = {
+                        if (state.currentStreak > 0) {
+                            StreakChip(streak = state.currentStreak)
+                        }
                         IconButton(
                             onClick = viewModel::onGiveUp,
                             enabled = state.mystery != null && !state.isWon && !state.isGivenUp,
@@ -193,6 +202,37 @@ private fun EmptyStateContent(onRestart: () -> Unit) {
         )
         Button(onClick = onRestart, modifier = Modifier.padding(top = 16.dp)) {
             Text("Démarrer une partie")
+        }
+    }
+}
+
+/**
+ * Petit badge "🔥 N" affiché dans la TopAppBar quand la série de victoires
+ * en cours est non nulle. Reset à 0 si abandon ou restart sans avoir gagné.
+ */
+@Composable
+private fun StreakChip(streak: Int) {
+    Surface(
+        color = MaterialTheme.colorScheme.tertiary,
+        shape = RoundedCornerShape(16.dp),
+        modifier = Modifier.padding(end = 4.dp),
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+        ) {
+            Icon(
+                imageVector = Icons.Default.LocalFireDepartment,
+                contentDescription = "Série de victoires",
+                tint = MaterialTheme.colorScheme.onTertiary,
+                modifier = Modifier.size(18.dp),
+            )
+            Spacer(modifier = Modifier.width(4.dp))
+            Text(
+                text = streak.toString(),
+                color = MaterialTheme.colorScheme.onTertiary,
+                fontWeight = FontWeight.SemiBold,
+            )
         }
     }
 }
